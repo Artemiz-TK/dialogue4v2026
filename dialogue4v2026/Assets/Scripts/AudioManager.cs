@@ -5,6 +5,9 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
 
+    // Índice selecionado globalmente (pode ser alterado via editor custom ou por scripts)
+    public int SelectedIndex = 0;
+
     private AudioSource systemSource;
     private List<AudioSource> activeSources;
     
@@ -14,13 +17,15 @@ public class AudioManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            systemSource = gameObject.GetComponent<AudioSource>();
+            activeSources = new List<AudioSource>();
         }
         else
         {
             Destroy(gameObject);
         }
     }
-    
+
     // Funções de gerenciamento de audio 2D
     public void PlaySound(AudioClip clip)
     {
@@ -47,6 +52,25 @@ public class AudioManager : MonoBehaviour
     public void PlayOneShot(AudioClip clip)
     {
         systemSource.PlayOneShot(clip);
+    }
+
+    // Play a clip from an AudioCollection by index (2D/system source)
+    public void PlayCollection(AudioCollection collection, int index)
+    {
+        if (collection == null || collection.AudioClipCollection == null) return;
+        if (index < 0 || index >= collection.AudioClipCollection.Count) return;
+        PlaySound(collection.AudioClipCollection[index]);
+    }
+
+    // Play using the current SelectedIndex
+    public void PlayCollection(AudioCollection collection)
+    {
+        PlayCollection(collection, SelectedIndex);
+    }
+
+    public void SetSelectedIndex(int index)
+    {
+        SelectedIndex = index;
     }
     
     // Funções de gerenciamento de audio 3d
