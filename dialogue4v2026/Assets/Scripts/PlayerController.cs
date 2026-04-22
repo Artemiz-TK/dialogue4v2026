@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Core;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
@@ -47,6 +48,8 @@ public class PlayerController : MonoBehaviour
 
     void OnMovePerformed(InputAction.CallbackContext ctx)
     {
+        if (!GameManager.Instance.IsInGameplay())
+            return;
         m_MoveInput = ctx.ReadValue<Vector2>();
     }
 
@@ -78,4 +81,3 @@ public class PlayerController : MonoBehaviour
         }
     }
 }
-
