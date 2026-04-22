@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 namespace Core
 {
@@ -18,6 +19,11 @@ namespace Core
             }
             _instance = this;
             DontDestroyOnLoad(gameObject);
+        }
+
+        void Start()
+        {
+            StartCoroutine(StartRoutine());
         }
 
         /// <summary>
@@ -48,6 +54,26 @@ namespace Core
             {
                 Debug.LogWarning("SceneManager: Cannot transition to Gameplay at this time.");
             }
+        }
+        
+        private IEnumerator StartRoutine()
+        {
+            yield return null;
+
+            // SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex+1);
+            if (GameManager.Instance.CanTransitionTo(GameState.Splash))
+            {
+                SceneManager.LoadScene("Splash");
+            }
+
+            yield return new WaitForSeconds(2f);
+
+            if (GameManager.Instance.CanTransitionTo(GameState.MenuPrincipal))
+            {
+                SceneManager.LoadScene("MenuPrincipal");
+            }
+
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex+1);
         }
     }
 }

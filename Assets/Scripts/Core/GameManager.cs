@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using System.Collections;
 
 namespace Core
 {
@@ -7,9 +7,12 @@ namespace Core
     {
         private static GameManager _instance;
         
-        public static GameManager Instance => _instance;
         private GameState _currentState;
+
+        private bool m_CanSwitchScene;
         
+        public static GameManager Instance => _instance;
+        public bool canSwitchScene => m_CanSwitchScene;
 
         void Awake()
         {
@@ -23,16 +26,12 @@ namespace Core
             _currentState = GameState.Iniciando;
         }
 
-        public bool IsInitialized()
+        void Start()
         {
-            return _currentState == GameState.Iniciando;
+            _currentState = GameState.Iniciando;
+            StartCoroutine(StartRoutine());
         }
-        
-        public bool IsInMainMenu()
-        {
-            return _currentState == GameState.MenuPrincipal;
-        }
-        
+
         public bool IsInGameplay()
         {
             return _currentState == GameState.Gameplay;
@@ -43,6 +42,8 @@ namespace Core
             switch (_currentState)
             {
                 case GameState.Iniciando:
+                    return newState == GameState.Splash;
+                case GameState.Splash:
                     return newState == GameState.MenuPrincipal;
                 case GameState.MenuPrincipal:
                     return newState == GameState.Gameplay;
@@ -66,14 +67,14 @@ namespace Core
                 Debug.Log($"GameManager: State changed to {newState}");
 
                 // Load the appropriate scene based on the new state
-                if (newState == GameState.Gameplay)
-                {
-                    UnityEngine.SceneManagement.SceneManager.LoadScene("SampleScene");
-                }
-                else if (newState == GameState.MenuPrincipal)
-                {
-                    UnityEngine.SceneManagement.SceneManager.LoadScene("MenuPrincipal");
-                }
+                // if (newState == GameState.Gameplay)
+                // {
+                //     UnityEngine.SceneManagement.SceneManager.LoadScene("SampleScene");
+                // }
+                // else if (newState == GameState.MenuPrincipal)
+                // {
+                //     UnityEngine.SceneManagement.SceneManager.LoadScene("MenuPrincipal");
+                // }
             }
             else
             {
@@ -85,6 +86,27 @@ namespace Core
         public static void SetStateToGameplay()
         {
             SetState(GameState.Gameplay);
+        }
+
+        private IEnumerator StartRoutine()
+        {
+            yield return null;
+
+            m_CanSwitchScene = true;
+            SetState(GameState.Splash);
+
+            yield return null;
+
+            m_CanSwitchScene = false;
+
+            yield return new WaitForSeconds(2f);
+
+            m_CanSwitchScene = true;
+            SetState(GameState.MenuPrincipal);
+
+            yield return null;
+            
+            m_CanSwitchScene = false;
         }
     }
 }

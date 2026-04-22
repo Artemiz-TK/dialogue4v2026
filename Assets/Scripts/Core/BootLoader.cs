@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEditor;
 
 namespace Core
 {
@@ -12,6 +13,16 @@ namespace Core
         {
             SceneManager.LoadScene(nextScene);
             Debug.Log($"BootLoader: Loaded scene '{nextScene}'");
+        }
+
+        public void Quit()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+
         }
     }
 }
