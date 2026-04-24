@@ -11,8 +11,10 @@ namespace Core
 
         public void LoadNextScene()
         {
+            GameManager.SetState(GameState.Gameplay);
             SceneManager.LoadScene(nextScene);
             Debug.Log($"BootLoader: Loaded scene '{nextScene}'");
+            Debug.Log($"BootLoader -> GameManager: State changed to {GameManager.Instance.State}");
         }
 
         public void Quit()
