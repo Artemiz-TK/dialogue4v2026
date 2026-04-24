@@ -13,6 +13,7 @@ namespace Core
         
         public static GameManager Instance => _instance;
         public bool canSwitchScene => m_CanSwitchScene;
+        public GameState State => _currentState;
 
         void Awake()
         {
@@ -23,12 +24,12 @@ namespace Core
             }
             _instance = this;
             DontDestroyOnLoad(gameObject);
-            _currentState = GameState.Iniciando;
         }
 
         void Start()
         {
             _currentState = GameState.Iniciando;
+            Debug.Log($"GameManager: State changed to {_currentState}");
             StartCoroutine(StartRoutine());
         }
 
