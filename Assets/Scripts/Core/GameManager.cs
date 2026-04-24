@@ -49,7 +49,7 @@ namespace Core
                 case GameState.MenuPrincipal:
                     return newState == GameState.Gameplay;
                 case GameState.Gameplay:
-                    return newState == GameState.MenuPrincipal; // Allow returning to menu, or add logic for next levels if needed
+                    return newState == GameState.MenuPrincipal;
                 default:
                     return false;
             }
@@ -66,16 +66,6 @@ namespace Core
             {
                 _instance._currentState = newState;
                 Debug.Log($"GameManager: State changed to {newState}");
-
-                // Load the appropriate scene based on the new state
-                // if (newState == GameState.Gameplay)
-                // {
-                //     UnityEngine.SceneManagement.SceneManager.LoadScene("SampleScene");
-                // }
-                // else if (newState == GameState.MenuPrincipal)
-                // {
-                //     UnityEngine.SceneManagement.SceneManager.LoadScene("MenuPrincipal");
-                // }
             }
             else
             {
