@@ -116,7 +116,7 @@ namespace Editor
                 _pendingOriginalPath = null;
             }
             
-            GameManager.SetStateToGameplay();
+            // GameManager.SetStateToGameplay();
 
             EditorSceneManager.playModeStartScene = null;
         }

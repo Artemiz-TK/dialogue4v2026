@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 namespace Core
 {
@@ -12,7 +13,6 @@ namespace Core
         private bool m_CanSwitchScene;
         
         public static GameManager Instance => _instance;
-        public bool canSwitchScene => m_CanSwitchScene;
         public GameState State => _currentState;
 
         void Awake()
@@ -37,7 +37,7 @@ namespace Core
         {
             return _currentState == GameState.Gameplay;
         }
-        
+
         public bool CanTransitionTo(GameState newState)
         {
             switch (_currentState)
@@ -54,29 +54,42 @@ namespace Core
                     return false;
             }
         }
-
-        public static void SetState(GameState newState)
+        
+        public void ChangeState(GameState newState)
         {
-            if (_instance == null)
-            {
-                Debug.LogError("GameManager instance is null");
+            if (!CanTransitionTo(newState))
                 return;
-            }
-            if (_instance.CanTransitionTo(newState))
+
+            _currentState = newState;
+
+            switch (newState)
             {
-                _instance._currentState = newState;
-                Debug.Log($"GameManager: State changed to {newState}");
+                case GameState.Splash:
+                    LoadScene("Splash");
+                    break;
+                case GameState.MenuPrincipal:
+                    LoadScene("MenuPrincipal");
+                    break;
+                case GameState.Gameplay:
+                    LoadScene("SampleScene");
+                    break;
             }
-            else
-            {
-                Debug.LogWarning($"GameManager: Cannot transition from {_instance._currentState} to {newState}");
-                UnityEngine.SceneManagement.SceneManager.LoadScene("MenuPrincipal");
-            }
+
+            Debug.Log($"GameManager: State changed to {newState}");
         }
 
-        public static void SetStateToGameplay()
+        public void StartGame()
         {
-            SetState(GameState.Gameplay);
+            ChangeState(GameState.Gameplay);
+        }
+
+        public void Quit()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         private IEnumerator StartRoutine()
@@ -84,20 +97,26 @@ namespace Core
             yield return null;
 
             m_CanSwitchScene = true;
-            SetState(GameState.Splash);
+            ChangeState(GameState.Splash);
 
             yield return null;
-
             m_CanSwitchScene = false;
 
             yield return new WaitForSeconds(2f);
 
             m_CanSwitchScene = true;
-            SetState(GameState.MenuPrincipal);
+            ChangeState(GameState.MenuPrincipal);
+        }
 
-            yield return null;
-            
-            m_CanSwitchScene = false;
+        public void LoadScene(string sceneName)
+        {
+            if (!m_CanSwitchScene)
+            {
+                Debug.LogWarning("Scene switch not allowed right now.");
+                return;
+            }
+
+            SceneManager.LoadScene(sceneName);
         }
     }
 }
