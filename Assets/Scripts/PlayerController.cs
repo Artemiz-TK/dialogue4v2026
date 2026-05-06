@@ -34,6 +34,8 @@ public class PlayerController : MonoBehaviour
             moveAction.action.performed += OnMovePerformed;
             moveAction.action.canceled += OnMovePerformed;
         }
+
+        GameEventSystem.OnPlayerCollidedWithDoor += HandlePlayerCollision;
     }
 
     void OnDisable()
@@ -44,6 +46,8 @@ public class PlayerController : MonoBehaviour
             moveAction.action.canceled -= OnMovePerformed;
             moveAction.action.Disable();
         }
+        
+        GameEventSystem.OnPlayerCollidedWithDoor -= HandlePlayerCollision;
     }
 
     void OnMovePerformed(InputAction.CallbackContext ctx)
@@ -79,5 +83,10 @@ public class PlayerController : MonoBehaviour
                 m_Rigidbody.linearVelocity = new Vector3(limited.x, m_Rigidbody.linearVelocity.y, limited.z);
             }
         }
+    }
+
+    private void HandlePlayerCollision()
+    {
+        UIGameplayManager.Instance.ShowButton();
     }
 }

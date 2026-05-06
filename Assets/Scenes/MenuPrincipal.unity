@@ -1133,7 +1133,7 @@ GameObject:
   - component: {fileID: 826312891}
   - component: {fileID: 826312892}
   m_Layer: 0
-  m_Name: BoatLoader
+  m_Name: MainSceneLoader
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
