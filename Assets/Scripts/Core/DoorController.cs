@@ -2,29 +2,36 @@ using System;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class DoorController : MonoBehaviour
+namespace Core
 {
-    private bool isOpen = false;
-    void OnCollisionEnter(Collision collision)
+    public class DoorController : MonoBehaviour
     {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            Debug.Log("DoorController: Player collided with door.");
-            GameEventSystem.Invoke();
-        }
-    }
+        public static event Action<bool> OnOpenedOrLocked;
+        private bool _isOpen;
 
-    public void OpenDoor()
-    {
-        if (isOpen)
+        void OnCollisionEnter(Collision collision)
         {
-            transform.rotation = Quaternion.Euler(0, 90, 0);
-            isOpen = false;
+            if (collision.gameObject.CompareTag("Player"))
+            {
+                Debug.Log("DoorController: Player collided with door.");
+                GameEventSystem.Invoke();
+            }
         }
-        else
+
+        public void OpenDoor()
         {
-            transform.rotation = Quaternion.Euler(0, 0, 0);
-            isOpen = true;
+            if (!_isOpen)
+            {
+                transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                _isOpen = true;
+                OnOpenedOrLocked?.Invoke(_isOpen);
+            }
+            else
+            {
+                transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+                _isOpen = false;
+                OnOpenedOrLocked?.Invoke(_isOpen);
+            }
         }
     }
 }

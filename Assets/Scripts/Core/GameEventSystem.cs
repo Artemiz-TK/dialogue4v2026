@@ -1,13 +1,15 @@
 using UnityEngine;
 using System;
 
-public class GameEventSystem : MonoBehaviour
+namespace Core
 {
-    //public static GameEventSystem Instance;
-    public static event Action OnPlayerCollidedWithDoor;
-
-    public static void Invoke()
+    public class GameEventSystem : MonoBehaviour
     {
-        OnPlayerCollidedWithDoor?.Invoke();
-    }
+        public static event Action OnPlayerCollidedWithDoor;
+
+        public static void Invoke()
+        {
+            OnPlayerCollidedWithDoor?.Invoke();
+        }
+    }    
 }

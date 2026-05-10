@@ -1,21 +1,41 @@
 using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine.SceneManagement;
 
 namespace Core
 {
     public class GameManager : MonoBehaviour
     {
+        public enum GameState
+        {
+            Iniciando,
+            Splash,
+            MenuPrincipal,
+            Gameplay
+        }
+
+        private class HashMap
+        {
+            public readonly Dictionary<string, GameState> getSceneDictionary = new();
+
+            public HashMap(string firstState, string secondState, string thirdState)
+            {
+                getSceneDictionary.Add(firstState, GameState.Splash);
+                getSceneDictionary.Add(secondState, GameState.MenuPrincipal);
+                getSceneDictionary.Add(thirdState, GameState.Gameplay);
+            }
+        }
+
+        private HashMap _hashTable = new("Splash", "MenuPrincipal", "SampleScene");
+
         private static GameManager _instance;
-        
+
         private GameState _currentState;
 
-        private bool m_CanSwitchScene;
-        
         public static GameManager Instance => _instance;
-        public GameState State => _currentState;
 
-        void Awake()
+        private void Awake()
         {
             if (_instance != null && _instance != this)
             {
@@ -26,11 +46,10 @@ namespace Core
             DontDestroyOnLoad(gameObject);
         }
 
-        void Start()
+        private void Start()
         {
             _currentState = GameState.Iniciando;
             Debug.Log($"GameManager: State changed to {_currentState}");
-            StartCoroutine(StartRoutine());
         }
 
         public bool IsInGameplay()
@@ -38,7 +57,7 @@ namespace Core
             return _currentState == GameState.Gameplay;
         }
 
-        public bool CanTransitionTo(GameState newState)
+        private bool CanTransitionTo(GameState newState)
         {
             switch (_currentState)
             {
@@ -54,63 +73,49 @@ namespace Core
                     return false;
             }
         }
-        
-        public void ChangeState(GameState newState)
+
+        public void LoadScene(string scene)
         {
-            if (!CanTransitionTo(newState))
+            var state = _hashTable.getSceneDictionary[scene];
+            if (!CanTransitionTo(state))
                 return;
 
-            _currentState = newState;
-
-            switch (newState)
+            switch (state)
             {
                 case GameState.Splash:
-                    LoadScene("Splash");
+                    ChangeScene("Splash");
                     break;
                 case GameState.MenuPrincipal:
-                    LoadScene("MenuPrincipal");
+                    ChangeScene("MenuPrincipal");
                     break;
                 case GameState.Gameplay:
-                    LoadScene("SampleScene");
+                    ChangeScene("SampleScene");
                     break;
             }
 
-            Debug.Log($"GameManager: State changed to {newState}");
+            _currentState = state;
+
+            Debug.Log($"GameManager: State changed to {_currentState}");
         }
 
         public void StartGame()
         {
-            ChangeState(GameState.Gameplay);
+            LoadScene("SampleScene");
         }
 
         public void Quit()
         {
 #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
+            EditorApplication.isPlaying = false;
 #else
             Application.Quit();
 #endif
         }
 
-        private IEnumerator StartRoutine()
+        public void ChangeScene(string sceneName)
         {
-            yield return null;
-
-            m_CanSwitchScene = true;
-            ChangeState(GameState.Splash);
-
-            yield return null;
-            m_CanSwitchScene = false;
-
-            yield return new WaitForSeconds(2f);
-
-            m_CanSwitchScene = true;
-            ChangeState(GameState.MenuPrincipal);
-        }
-
-        public void LoadScene(string sceneName)
-        {
-            if (!m_CanSwitchScene)
+            var state = _hashTable.getSceneDictionary[sceneName];
+            if (!CanTransitionTo(state))
             {
                 Debug.LogWarning("Scene switch not allowed right now.");
                 return;
