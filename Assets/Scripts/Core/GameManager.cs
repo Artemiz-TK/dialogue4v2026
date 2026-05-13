@@ -74,6 +74,11 @@ namespace Core
             }
         }
 
+        private void JustLoadScene(string sceneName)
+        {
+            SceneManager.LoadScene(sceneName);
+        }
+
         public void LoadScene(string scene)
         {
             var state = _hashTable.getSceneDictionary[scene];
@@ -89,6 +94,7 @@ namespace Core
                     ChangeScene("MenuPrincipal");
                     break;
                 case GameState.Gameplay:
+                    JustLoadScene("GUI");
                     ChangeScene("SampleScene");
                     break;
             }
