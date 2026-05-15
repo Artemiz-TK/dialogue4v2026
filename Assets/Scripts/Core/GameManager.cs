@@ -1,6 +1,9 @@
+using System;
+using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 namespace Core
@@ -32,8 +35,18 @@ namespace Core
         private static GameManager _instance;
 
         private GameState _currentState;
+        public GameState State
+        {
+            set
+            {
+                _currentState = value;
+                if (_currentState == GameState.Gameplay)
+                    OnGameplayEntered?.Invoke();
+            }
+        }
 
         public static GameManager Instance => _instance;
+        public static event Action OnGameplayEntered;
 
         private void Awake()
         {
@@ -44,6 +57,15 @@ namespace Core
             }
             _instance = this;
             DontDestroyOnLoad(gameObject);
+        }
+
+        private void OnEnable()
+        {
+            OnGameplayEntered += HandleGameplayEnter;
+        }
+        private void OnDisable()
+        {
+            OnGameplayEntered -= HandleGameplayEnter;
         }
 
         private void Start()
@@ -74,11 +96,6 @@ namespace Core
             }
         }
 
-        private void JustLoadScene(string sceneName)
-        {
-            SceneManager.LoadScene(sceneName);
-        }
-
         public void LoadScene(string scene)
         {
             var state = _hashTable.getSceneDictionary[scene];
@@ -94,19 +111,34 @@ namespace Core
                     ChangeScene("MenuPrincipal");
                     break;
                 case GameState.Gameplay:
-                    JustLoadScene("GUI");
                     ChangeScene("SampleScene");
                     break;
             }
 
             _currentState = state;
-
             Debug.Log($"GameManager: State changed to {_currentState}");
+        }
+
+        private void HandleGameplayEnter()
+        {
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
         }
 
         public void StartGame()
         {
-            LoadScene("SampleScene");
+            StartCoroutine(StartGameRoutine());
+        }
+
+        private IEnumerator StartGameRoutine()
+        {
+            yield return SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
+
+            // 2. Carrega a cena de interface por cima (Aditiva)
+            yield return SceneManager.LoadSceneAsync("GUI", LoadSceneMode.Additive);
+
+            State = GameState.Gameplay;
+            Debug.Log($"GameManager: State changed to {_currentState}");
         }
 
         public void Quit()
