@@ -1,19 +1,18 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public class QuantityManager : MonoBehaviour
 {
-    public static QuantityManager Instance { get; private set; }
     private int m_TotalQuantity = 0;
 
-    private void Awake()
+    private void OnEnable()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        EventTriggers.OnAddCoin += AddCoin;
+    }
+
+    private void OnDisable()
+    {
+        EventTriggers.OnAddCoin -= AddCoin;
     }
 
     public void AddCoin()

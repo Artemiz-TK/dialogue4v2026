@@ -11,7 +11,7 @@ public class CoinController : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            QuantityManager.Instance.AddCoin();
+            EventTriggers.AddCoinInvoke();
             gameObject.SetActive(false);
         }
     }
