@@ -13,12 +13,12 @@ public class GUIManager : MonoBehaviour
 
     void OnEnable()
     {
-        Interact.OnLoaded += Load;
+        EventTriggers.OnLoaded += Load;
     }
 
     void OnDisable()
     {
-        Interact.OnLoaded -= Load;
+        EventTriggers.OnLoaded -= Load;
     }
 
     private void Start()

@@ -1,6 +1,4 @@
-using System;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class CoinController : MonoBehaviour
 {
@@ -8,12 +6,12 @@ public class CoinController : MonoBehaviour
 
     private void OnEnable()
     {
-        Interact.OnInteracted += HandleInteract;
+        EventTriggers.OnInteracted += HandleInteract;
     }
 
     private void OnDisable()
     {
-        Interact.OnInteracted -= HandleInteract;
+        EventTriggers.OnInteracted -= HandleInteract;
     }
 
     void Start()
@@ -25,8 +23,7 @@ public class CoinController : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            Interact.InteractInvoke(); // incrementa o valor
-            Interact.LoadInvoke(QuantityOfCoins);    //  atualiza no texto
+            EventTriggers.InteractInvoke(); // incrementa o valor
             gameObject.SetActive(false);
         }
     }
@@ -34,5 +31,7 @@ public class CoinController : MonoBehaviour
     private void HandleInteract()
     {
         QuantityOfCoins += 1;
+
+        EventTriggers.LoadInvoke(QuantityOfCoins); //  atualiza no texto
     }
 }
