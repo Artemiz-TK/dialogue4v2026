@@ -3,7 +3,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Core;
 
 namespace Editor
 {
@@ -52,7 +51,7 @@ namespace Editor
                 return;
             }
 
-            var active = EditorSceneManager.GetActiveScene();
+            var active = SceneManager.GetActiveScene();
             string activePath = active.path;
             if (string.IsNullOrEmpty(activePath))
             {

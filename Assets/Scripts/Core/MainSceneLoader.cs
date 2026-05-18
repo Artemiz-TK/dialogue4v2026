@@ -8,7 +8,7 @@ namespace Core
 
         public void LoadNextScene()
         {
-            GameManager.Instance.LoadScene(nextScene);
+            GameManager.Instance.StartGame();
             Debug.Log($"MainSceneLoader: Loaded scene '{nextScene}'");
         }
 
