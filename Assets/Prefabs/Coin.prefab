@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 4399180697936007214}
   m_Layer: 0
   m_Name: Coin
-  m_TagString: Untagged
+  m_TagString: Coin
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -125,3 +125,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a5f78d051bc46d4fb19381786bfa316, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CoinController
+  m_Quantity:
+    <quantity>k__BackingField: 0

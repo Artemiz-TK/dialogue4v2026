@@ -24,6 +24,7 @@ public class PlayerController : MonoBehaviour
         m_Rigidbody = GetComponent<Rigidbody>();
         if (m_Rigidbody == null)
             Debug.LogError("PlayerController requires a Rigidbody on the same GameObject.");
+        
     }
 
     void OnEnable()
