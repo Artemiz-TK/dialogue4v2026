@@ -31,7 +31,7 @@ public class PortaController : MonoBehaviour
     private void OpenClose()
     {
         if (!isInteractable) return;
-        
+
         if (!isOpen)
         {
             anim.StopPlayback();

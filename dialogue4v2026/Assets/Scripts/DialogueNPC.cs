@@ -21,8 +21,8 @@ public class DialogueNPC : MonoBehaviour
     {
         if (other.tag == "Player" && !isInteractable)
         {
-            InteractOM.OnInteract += ShowDialogue;
             isInteractable = true;
+            InteractOM.OnPlayerInteracted += ShowDialogue;
             InteractOM.ShowInteraction(isInteractable);
             InteractOM.PositionChange(transform.position);
         }
@@ -32,14 +32,15 @@ public class DialogueNPC : MonoBehaviour
     {
         if (other.tag == "Player" && isInteractable)
         {
-            InteractOM.OnInteract -= ShowDialogue;
             isInteractable = false;
+            InteractOM.OnPlayerInteracted -= ShowDialogue;
             InteractOM.ShowInteraction(isInteractable);
         }
     }
 
-    private void ShowDialogue()
+    private void ShowDialogue(ref bool IsInteracting)
     {
+        IsInteracting = isInteractable;
         Debug.Log(NPCName+": "+DialogueLines[0]);
         DialogueOM.SubmitName(NPCName);
         DialogueOM.SubmitImage(NPCImage);

@@ -15,6 +15,8 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Maximum horizontal speed (m/s). Set to <= 0 to disable clamping.")]
     public float maxSpeed = 6f;
 
+    private bool m_IsInteracting;
+
     Rigidbody m_Rigidbody;
     Vector2 m_MoveInput;
 
@@ -53,6 +55,12 @@ public class PlayerController : MonoBehaviour
         if (m_Rigidbody == null)
             return;
 
+        if (m_IsInteracting)
+        {
+            m_Rigidbody.linearVelocity = Vector3.zero;
+            return;
+        }
+
         // Convert 2D input (x,y) to world X,Z movement
         Vector3 desired = new Vector3(m_MoveInput.x, 0f, m_MoveInput.y);
 
@@ -78,7 +86,7 @@ public class PlayerController : MonoBehaviour
     
     private void OnInteract(InputAction.CallbackContext obj)
     {
-        InteractOM.Interact();
+        InteractOM.PlayerInteracted(ref m_IsInteracting);
     }
 }
 

@@ -9,6 +9,13 @@ public static class InteractOM
     {
         OnInteract?.Invoke();
     }
+    public delegate void RefAction(ref bool value);
+    public static event RefAction OnPlayerInteracted;
+
+    public static void PlayerInteracted(ref bool value)
+    {
+        OnPlayerInteracted?.Invoke(ref value);
+    }
     
     public static event Action<bool> OnShowInteraction;
     
