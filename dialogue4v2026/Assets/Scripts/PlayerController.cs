@@ -19,7 +19,7 @@ public class PlayerController : MonoBehaviour
     Rigidbody m_Rigidbody;
     Vector2 m_MoveInput;
 
-    private static Action OnPlayerInteractionStated;
+    private static Action OnPlayerInteractionStarted;
     private static Action OnPlayerInteractionPerformed;
 
     void Awake()
@@ -38,7 +38,7 @@ public class PlayerController : MonoBehaviour
 
         playerInput.actions.FindAction("Interact").performed += OnInteract;
 
-        OnPlayerInteractionStated += StartInteraction;
+        OnPlayerInteractionStarted += StartInteraction;
         OnPlayerInteractionPerformed += EndInteraction;
     }
 
@@ -48,9 +48,9 @@ public class PlayerController : MonoBehaviour
         playerInput.actions.FindAction("Interact").performed -= OnInteract;
     }
 
-    public static void InteractionStated()
+    public static void InteractionStarted()
     {
-        OnPlayerInteractionStated?.Invoke();
+        OnPlayerInteractionStarted?.Invoke();
     }
 
     public static void InteractionPerformed()

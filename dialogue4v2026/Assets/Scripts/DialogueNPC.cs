@@ -39,7 +39,7 @@ public class DialogueNPC : MonoBehaviour
 
     private void ShowDialogue()
     {
-        PlayerController.InteractionStated();
+        PlayerController.InteractionStarted();
 
         DialogueOM.SubmitName(NPCName);
         DialogueOM.SubmitImage(NPCImage);
