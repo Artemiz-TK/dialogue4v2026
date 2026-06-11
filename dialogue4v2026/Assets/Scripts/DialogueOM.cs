@@ -26,4 +26,10 @@ public static class DialogueOM
     {
         OnStartDialogue?.Invoke();
     }
+
+    public static event Action OnDialogueFinished;
+    public static void DialogueFinished()
+    {
+        OnDialogueFinished?.Invoke();
+    }
 }

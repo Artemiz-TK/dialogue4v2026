@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
@@ -20,6 +19,9 @@ public class PlayerController : MonoBehaviour
     Rigidbody m_Rigidbody;
     Vector2 m_MoveInput;
 
+    private static Action OnPlayerInteractionStated;
+    private static Action OnPlayerInteractionPerformed;
+
     void Awake()
     {
         playerInput = GetComponent<PlayerInput>();
@@ -35,14 +37,25 @@ public class PlayerController : MonoBehaviour
             context => {m_MoveInput = Vector2.zero;};
 
         playerInput.actions.FindAction("Interact").performed += OnInteract;
-    }
 
-    
+        OnPlayerInteractionStated += StartInteraction;
+        OnPlayerInteractionPerformed += EndInteraction;
+    }
 
     void OnDisable()
     {
         playerInput.actions.FindAction("Move").performed -= OnMovePerformed;
         playerInput.actions.FindAction("Interact").performed -= OnInteract;
+    }
+
+    public static void InteractionStated()
+    {
+        OnPlayerInteractionStated?.Invoke();
+    }
+
+    public static void InteractionPerformed()
+    {
+        OnPlayerInteractionPerformed?.Invoke();
     }
 
     void OnMovePerformed(InputAction.CallbackContext ctx)
@@ -83,10 +96,27 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
-    
+
     private void OnInteract(InputAction.CallbackContext obj)
     {
-        InteractOM.PlayerInteracted(ref m_IsInteracting);
+        if (!m_IsInteracting)
+        {
+            InteractOM.PlayerInteracted();
+            return;
+        }
+        else
+        {
+            DialogueOM.DialogueFinished();
+        }
+    }
+
+    private void StartInteraction()
+    {
+        m_IsInteracting = true;
+    }
+
+    private void EndInteraction()
+    {
+        m_IsInteracting = false;
     }
 }
-
