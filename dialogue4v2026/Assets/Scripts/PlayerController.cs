@@ -46,6 +46,9 @@ public class PlayerController : MonoBehaviour
     {
         playerInput.actions.FindAction("Move").performed -= OnMovePerformed;
         playerInput.actions.FindAction("Interact").performed -= OnInteract;
+
+        OnPlayerInteractionStarted -= StartInteraction;
+        OnPlayerInteractionPerformed -= EndInteraction;
     }
 
     public static void InteractionStarted()
