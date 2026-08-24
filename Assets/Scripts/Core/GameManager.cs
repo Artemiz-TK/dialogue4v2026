@@ -22,11 +22,15 @@ namespace Core
         {
             public readonly Dictionary<string, GameState> getSceneDictionary = new();
 
-            public HashMap(string firstState, string secondState, string thirdState)
+            public HashMap(params string[] sceneNames)
             {
-                getSceneDictionary.Add(firstState, GameState.Splash);
-                getSceneDictionary.Add(secondState, GameState.MenuPrincipal);
-                getSceneDictionary.Add(thirdState, GameState.Gameplay);
+                foreach (var sceneName in sceneNames)
+                {
+                    getSceneDictionary.Add(sceneNames[0], GameState.Splash);
+                }
+                // getSceneDictionary.Add(sceneNames[0], GameState.Splash);
+                // getSceneDictionary.Add(secondState, GameState.MenuPrincipal);
+                // getSceneDictionary.Add(thirdState, GameState.Gameplay);
             }
         }
 
