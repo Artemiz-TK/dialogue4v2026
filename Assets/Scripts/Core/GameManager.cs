@@ -3,8 +3,8 @@ using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using System.Linq;
 
 namespace Core
 {
@@ -15,51 +15,51 @@ namespace Core
             Iniciando,
             Splash,
             MenuPrincipal,
-            Gameplay
+            Fase1,
+            Fase2,
         }
 
-        private class HashMap
+        private class HashMapper
         {
-            public readonly Dictionary<string, GameState> getSceneDictionary = new();
+            private readonly Dictionary<string, GameState> m_Mapper = new();
+            
+            public Dictionary<string, GameState> Mapper => m_Mapper;
 
-            public HashMap(params string[] sceneNames)
+            public HashMapper()
             {
-                foreach (var sceneName in sceneNames)
+                foreach (var state in Enum.GetValues(typeof(GameState)).Cast<GameState>())
                 {
-                    getSceneDictionary.Add(sceneNames[0], GameState.Splash);
+                    m_Mapper[state.ToString()] = state;
                 }
-                // getSceneDictionary.Add(sceneNames[0], GameState.Splash);
-                // getSceneDictionary.Add(secondState, GameState.MenuPrincipal);
-                // getSceneDictionary.Add(thirdState, GameState.Gameplay);
             }
         }
 
-        private HashMap _hashTable = new("Splash", "MenuPrincipal", "SampleScene");
+        private HashMapper m_HashTable = new();
 
-        private static GameManager _instance;
+        private static GameManager s_Instance;
 
-        private GameState _currentState;
+        private GameState m_CurrentState;
         public GameState State
         {
             set
             {
-                _currentState = value;
-                if (_currentState == GameState.Gameplay)
+                m_CurrentState = value;
+                if (m_CurrentState == GameState.Fase1)
                     OnGameplayEntered?.Invoke();
             }
         }
 
-        public static GameManager Instance => _instance;
+        public static GameManager Singleton => s_Instance;
         public static event Action OnGameplayEntered;
 
         private void Awake()
         {
-            if (_instance != null && _instance != this)
+            if (s_Instance != null && s_Instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
-            _instance = this;
+            s_Instance = this;
             DontDestroyOnLoad(gameObject);
         }
 
@@ -74,26 +74,26 @@ namespace Core
 
         private void Start()
         {
-            _currentState = GameState.Iniciando;
-            Debug.Log($"GameManager: State changed to {_currentState}");
+            m_CurrentState = GameState.Iniciando;
+            Debug.Log($"GameManager: State changed to {m_CurrentState}");
         }
 
         public bool IsInGameplay()
         {
-            return _currentState == GameState.Gameplay;
+            return m_CurrentState == GameState.Fase1 || m_CurrentState == GameState.Fase2;
         }
 
         private bool CanTransitionTo(GameState newState)
         {
-            switch (_currentState)
+            switch (m_CurrentState)
             {
                 case GameState.Iniciando:
                     return newState == GameState.Splash;
                 case GameState.Splash:
                     return newState == GameState.MenuPrincipal;
                 case GameState.MenuPrincipal:
-                    return newState == GameState.Gameplay;
-                case GameState.Gameplay:
+                    return newState == GameState.Fase1;
+                case GameState.Fase1:
                     return newState == GameState.MenuPrincipal;
                 default:
                     return false;
@@ -102,7 +102,7 @@ namespace Core
 
         public void LoadScene(string scene)
         {
-            var state = _hashTable.getSceneDictionary[scene];
+            var state = m_HashTable.Mapper[scene];
             if (!CanTransitionTo(state))
                 return;
 
@@ -114,13 +114,20 @@ namespace Core
                 case GameState.MenuPrincipal:
                     ChangeScene("MenuPrincipal");
                     break;
-                case GameState.Gameplay:
-                    ChangeScene("SampleScene");
+                case GameState.Fase1:
+                    ChangeScene("Fase1");
                     break;
+                case GameState.Fase2:
+                    ChangeScene("Fase2");
+                    break;
+                case GameState.Iniciando:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
-            _currentState = state;
-            Debug.Log($"GameManager: State changed to {_currentState}");
+            m_CurrentState = state;
+            Debug.Log($"GameManager: State changed to {m_CurrentState}");
         }
 
         private void HandleGameplayEnter()
@@ -136,13 +143,13 @@ namespace Core
 
         private IEnumerator StartGameRoutine()
         {
-            yield return SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
+            yield return SceneManager.LoadSceneAsync("Fase1", LoadSceneMode.Single);
 
             // 2. Carrega a cena de interface por cima (Aditiva)
             yield return SceneManager.LoadSceneAsync("GUI", LoadSceneMode.Additive);
 
-            State = GameState.Gameplay;
-            Debug.Log($"GameManager: State changed to {_currentState}");
+            State = GameState.Fase1;
+            Debug.Log($"GameManager: State changed to {m_CurrentState}");
         }
 
         public void Quit()
@@ -156,7 +163,7 @@ namespace Core
 
         public void ChangeScene(string sceneName)
         {
-            var state = _hashTable.getSceneDictionary[sceneName];
+            var state = m_HashTable.Mapper[sceneName];
             if (!CanTransitionTo(state))
             {
                 Debug.LogWarning("Scene switch not allowed right now.");

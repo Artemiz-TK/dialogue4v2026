@@ -72,7 +72,7 @@ using UnityEngine.InputSystem.Utilities;
 /// }
 /// </code>
 /// </example>
-public partial class @InputActionReference: IInputActionCollection2, IDisposable
+public partial class @ActionAsset: IInputActionCollection2, IDisposable
 {
     /// <summary>
     /// Provides access to the underlying asset instance.
@@ -82,7 +82,7 @@ public partial class @InputActionReference: IInputActionCollection2, IDisposable
     /// <summary>
     /// Constructs a new instance.
     /// </summary>
-    public @InputActionReference()
+    public @ActionAsset()
     {
         asset = InputActionAsset.FromJson(@"{
     ""version"": 1,
@@ -141,7 +141,7 @@ public partial class @InputActionReference: IInputActionCollection2, IDisposable
                     ""name"": ""Jump"",
                     ""type"": ""Button"",
                     ""id"": ""f1ba0d36-48eb-4cd5-b651-1c94a6531f70"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -1167,10 +1167,10 @@ public partial class @InputActionReference: IInputActionCollection2, IDisposable
         m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
     }
 
-    ~@InputActionReference()
+    ~@ActionAsset()
     {
-        UnityEngine.Debug.Assert(!m_Player.enabled, "This will cause a leak and performance issues, InputActionReference.Player.Disable() has not been called.");
-        UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, InputActionReference.UI.Disable() has not been called.");
+        UnityEngine.Debug.Assert(!m_Player.enabled, "This will cause a leak and performance issues, ActionAsset.Player.Disable() has not been called.");
+        UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, ActionAsset.UI.Disable() has not been called.");
     }
 
     /// <summary>
@@ -1260,12 +1260,12 @@ public partial class @InputActionReference: IInputActionCollection2, IDisposable
     /// </summary>
     public struct PlayerActions
     {
-        private @InputActionReference m_Wrapper;
+        private @ActionAsset m_Wrapper;
 
         /// <summary>
         /// Construct a new instance of the input action map wrapper class.
         /// </summary>
-        public PlayerActions(@InputActionReference wrapper) { m_Wrapper = wrapper; }
+        public PlayerActions(@ActionAsset wrapper) { m_Wrapper = wrapper; }
         /// <summary>
         /// Provides access to the underlying input action "Player/Move".
         /// </summary>
@@ -1445,12 +1445,12 @@ public partial class @InputActionReference: IInputActionCollection2, IDisposable
     /// </summary>
     public struct UIActions
     {
-        private @InputActionReference m_Wrapper;
+        private @ActionAsset m_Wrapper;
 
         /// <summary>
         /// Construct a new instance of the input action map wrapper class.
         /// </summary>
-        public UIActions(@InputActionReference wrapper) { m_Wrapper = wrapper; }
+        public UIActions(@ActionAsset wrapper) { m_Wrapper = wrapper; }
         /// <summary>
         /// Provides access to the underlying input action "UI/Navigate".
         /// </summary>

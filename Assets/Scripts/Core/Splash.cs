@@ -27,11 +27,11 @@ namespace Core
         {
             yield return null;
 
-            GameManager.Instance.LoadScene("Splash");
+            GameManager.Singleton.LoadScene("Splash");
 
             yield return new WaitForSeconds(2f);
 
-            GameManager.Instance.LoadScene("MenuPrincipal");
+            GameManager.Singleton.LoadScene("MenuPrincipal");
         }
     }
 }

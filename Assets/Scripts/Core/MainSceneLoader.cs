@@ -8,13 +8,13 @@ namespace Core
 
         public void LoadNextScene()
         {
-            GameManager.Instance.StartGame();
+            GameManager.Singleton.StartGame();
             Debug.Log($"MainSceneLoader: Loaded scene '{nextScene}'");
         }
 
         public void Quit()
         {
-            GameManager.Instance.Quit();
+            GameManager.Singleton.Quit();
         }
     }
 }
