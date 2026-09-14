@@ -18,7 +18,7 @@
             SpawnCoins();
         }
 
-        public void SpawnCoins()
+        private void SpawnCoins()
         {
             if (m_CoinPrefab == null) return;
 
@@ -39,7 +39,7 @@
         {
             // Desenha o cubo no editor considerando a posição do Spawner
             Gizmos.color = Color.yellow;
-        
+
             Vector3 center = (m_FromPosition + m_ToPosition) / 2f;
             Vector3 size = new Vector3(
                 Mathf.Abs(m_ToPosition.x - m_FromPosition.x),

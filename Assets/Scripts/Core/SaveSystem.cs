@@ -4,33 +4,43 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-namespace Core.SaveSystem
+namespace Core
 {
     /// <summary>
-    /// Sistema de salvamento manual do jogo.
+    /// Sistema de salvamento do jogo.
+    ///
+    /// Slot 0 = Autosave
+    /// Slot 1 = Save manual
+    /// Slot 2 = Save manual
+    /// Slot 3 = Save manual
     /// </summary>
     public class SaveSystem : MonoBehaviour
     {
         private static SaveSystem s_Instance;
 
-        /// <summary>
-        /// Propriedade que pega a instância da class.
-        /// </summary>
-        /// <remarks>
-        /// <para><b>Exemplo de uso:</b></para>
-        /// <code>
-        /// SaveSystem.Singleton!.LoadPlayerLevel(level);
-        /// </code>
-        /// </remarks>
         public static SaveSystem Singleton => s_Instance;
 
-        private List<Save> m_Saves;
+        private const int AutoSaveSlot = 0;
+        private const int FirstManualSlot = 1;
+        private const int LastManualSlot = 3;
+
+        private const string SaveFolder = "SaveSystem";
+        private const string SaveFilePrefix = "SaveSlot_";
+        private const string SaveFileExtension = ".dat";
+
+        private List<Save> m_Saves = new List<Save>();
 
         private string m_DataPath;
 
+        // Caminho do arquivo antigo.
+        // Serve somente para não quebrar um save que já exista do sistema anterior.
+        private string m_LegacyDataPath;
+
         [SerializeField] private string m_KeyEncryptor;
 
+        public string DataPath => m_DataPath;
 
         private void Awake()
         {
@@ -41,70 +51,779 @@ namespace Core.SaveSystem
             }
 
             s_Instance = this;
-            m_Saves = new List<Save>();
-            m_Saves.Add(new Save(1, "Alguem"));
-            m_DataPath = Application.persistentDataPath + "/SaveSystem/SaveData.json";
+
+            string directory = Path.Combine(
+                Application.persistentDataPath,
+                SaveFolder
+            );
+
+            if (!Directory.Exists(directory))
+                Directory.CreateDirectory(directory);
+
+            // Mantemos DataPath funcionando.
+            // Agora ele representa o arquivo do Slot 0.
+            m_DataPath = GetSlotPath(0);
+
+            // Caminho utilizado pelo sistema antigo.
+            m_LegacyDataPath = Path.Combine(
+                Application.persistentDataPath,
+                SaveFolder,
+                "SaveData.json"
+            );
+
             DontDestroyOnLoad(gameObject);
+
+            // Mantém exatamente o comportamento original:
+            // tenta carregar o slot 0 ao iniciar.
+            LoadFromFile(0);
         }
 
-        #region Save & Load Name
+        // =====================================================================
+        // MÉTODO ORIGINAL
+        // =====================================================================
 
-        public bool SavePlayerName(string name, int slot = 0)
+        public void Add(Vector3 pos, int coin)
         {
-            if (m_Saves.Count < slot && m_Saves[slot] == null) return false;
-            m_Saves[slot].PlayerName = name;
+            // Mantido exatamente para não quebrar quem já utiliza esse método.
+            m_Saves.Add(new Save(pos, coin));
+        }
+        
+        /// <summary>
+        /// Cria um novo jogo.
+        /// </summary>
+        public void NewGame()
+        {
+            // Remove o autosave antigo da memória.
+            EnsureSlotExists(AutoSaveSlot);
+            m_Saves[AutoSaveSlot] = null;
+
+            // Remove o arquivo físico do autosave.
+            string autoSavePath = GetSlotPath(AutoSaveSlot);
+
+            if (File.Exists(autoSavePath))
+            {
+                File.Delete(autoSavePath);
+            }
+
+            Debug.Log(
+                "[SaveSystem] Novo jogo iniciado. Autosave anterior removido."
+            );
+        }
+
+        // =====================================================================
+        // SLOTS
+        // =====================================================================
+
+        /// <summary>
+        /// Garante que exista espaço na lista interna até o slot informado.
+        /// Diferentemente da versão anterior, slots ainda não utilizados ficam null,
+        /// permitindo saber se realmente existe um save.
+        /// </summary>
+        private void EnsureSlotExists(int slot)
+        {
+            if (slot < 0)
+                return;
+
+            if (m_Saves == null)
+                m_Saves = new List<Save>();
+
+            while (m_Saves.Count <= slot)
+            {
+                m_Saves.Add(null);
+            }
+        }
+
+        private Save GetOrCreateSave(int slot)
+        {
+            if (slot < 0)
+                return null;
+
+            EnsureSlotExists(slot);
+
+            if (m_Saves[slot] == null)
+            {
+                m_Saves[slot] = new Save(
+                    Vector3.zero,
+                    0
+                );
+            }
+
+            return m_Saves[slot];
+        }
+
+        private string GetSlotPath(int slot)
+        {
+            return Path.Combine(
+                Application.persistentDataPath,
+                SaveFolder,
+                $"{SaveFilePrefix}{slot}{SaveFileExtension}"
+            );
+        }
+
+        /// <summary>
+        /// Verifica se existe um arquivo de save no slot.
+        /// </summary>
+        public bool HasSave(int slot)
+        {
+            if (slot is < AutoSaveSlot or > LastManualSlot)
+                return false;
+
+            return File.Exists(GetSlotPath(slot));
+        }
+
+        /// <summary>
+        /// Retorna os dados do slot já carregados em memória.
+        /// </summary>
+        public Save GetSave(int slot)
+        {
+            if (slot < 0 || slot >= m_Saves.Count)
+                return null;
+
+            return m_Saves[slot];
+        }
+
+        // =====================================================================
+        // SAVE & LOAD COINS
+        // =====================================================================
+
+        public bool SavePlayerCoins(int coin, int slot = 0)
+        {
+            if (slot < 0)
+                return false;
+
+            Save save = GetOrCreateSave(slot);
+
+            if (save == null)
+                return false;
+
+            // Mantemos Coin como a quantidade atual.
+            save.Coin = coin;
+
             return true;
         }
 
-        public bool LoadPlayerName(out string name, int slot = 0)
+        public bool LoadPlayerCoins(out int coin, int slot = 0)
         {
-            if (m_Saves.Count < slot && m_Saves[slot] == null)
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
             {
-                name = "";
+                coin = -1;
                 return false;
             }
 
-            name = m_Saves[slot].PlayerName;
+            coin = m_Saves[slot].Coin;
+
             return true;
         }
 
-        #endregion
+        // =====================================================================
+        // SAVE & LOAD POSITION
+        // =====================================================================
 
-        #region Save & Load Level
-
-        public bool LoadPlayerLevel(out int level, int slot = 0)
+        public bool LoadPosition(out Vector3 pos, int slot = 0)
         {
-            if (m_Saves.Count < slot && m_Saves[slot] == null)
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
             {
-                level = -1;
+                pos = Vector3.zero;
                 return false;
             }
 
-            level = m_Saves[slot].PlayerLevel;
+            pos = m_Saves[slot].Position;
+
             return true;
         }
 
-        public bool SavePlayerLevel(int level, int slot = 0)
+        public bool SavePosition(Vector3 pos, int slot = 0)
         {
-            if (m_Saves.Count < slot && m_Saves[slot] == null) return false;
-            m_Saves[slot].PlayerLevel = level;
+            if (slot < 0)
+                return false;
+
+            Save save = GetOrCreateSave(slot);
+
+            if (save == null)
+                return false;
+
+            save.Position = pos;
+
             return true;
         }
 
-        #endregion
+        // =====================================================================
+        // CHECKPOINT
+        // =====================================================================
+
+        /// <summary>
+        /// Salva o estado do checkpoint.
+        ///
+        /// O checkpoint é salvo no Slot 0 por padrão porque ele representa
+        /// o autosave da progressão.
+        /// </summary>
+        public bool SaveCheckpoint(
+            Vector3 checkpointPosition,
+            int coins,
+            int slot = AutoSaveSlot)
+        {
+            if (slot < 0)
+                return false;
+
+            Save save = GetOrCreateSave(slot);
+
+            if (save == null)
+                return false;
+
+            // ============================================================
+            // CENA ATUAL
+            // ============================================================
+
+            string sceneName =
+                SceneManager.GetActiveScene().name;
+
+            save.SceneName = sceneName;
+
+            // ============================================================
+            // ESTADO ATUAL
+            // ============================================================
+
+            save.Position = checkpointPosition;
+            save.Coin = coins;
+
+            // ============================================================
+            // ESTADO DO CHECKPOINT
+            // ============================================================
+
+            save.CheckpointActivated = true;
+            save.CheckpointPosition = checkpointPosition;
+            save.CheckpointCoin = coins;
+
+            // ============================================================
+            // SALVA O ARQUIVO
+            // ============================================================
+
+            SaveFile(slot);
+
+            Debug.Log(
+                $"[SaveSystem] CHECKPOINT salvo.\n" +
+                $"Slot: {slot}\n" +
+                $"Cena: {sceneName}\n" +
+                $"Posição: {checkpointPosition}\n" +
+                $"Moedas: {coins}"
+            );
+
+            return true;
+        }
+
+
+        /// <summary>
+        /// Retorna se o save possui checkpoint ativado.
+        /// </summary>
+        public bool HasCheckpoint(int slot = 0)
+        {
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                return false;
+            }
+
+            return m_Saves[slot].CheckpointActivated;
+        }
+
+        /// <summary>
+        /// Retorna a posição específica do checkpoint.
+        /// </summary>
+        public bool LoadCheckpointPosition(
+            out Vector3 pos,
+            int slot = 0)
+        {
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                pos = Vector3.zero;
+                return false;
+            }
+
+            Save save = m_Saves[slot];
+
+            if (!save.CheckpointActivated)
+            {
+                pos = Vector3.zero;
+                return false;
+            }
+
+            pos = save.CheckpointPosition;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Retorna a quantidade de moedas existente quando o checkpoint
+        /// foi ativado.
+        /// </summary>
+        public bool LoadCheckpointCoins(
+            out int coin,
+            int slot = 0)
+        {
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                coin = 0;
+                return false;
+            }
+
+            Save save = m_Saves[slot];
+
+            if (!save.CheckpointActivated)
+            {
+                coin = 0;
+                return false;
+            }
+
+            coin = save.CheckpointCoin;
+
+            return true;
+        }
+
+        // =====================================================================
+        // CENA
+        // =====================================================================
+
+        /// <summary>
+        /// Define manualmente qual cena deverá ser carregada quando
+        /// esse save for utilizado.
+        /// </summary>
+        public bool SaveSceneName(
+            string sceneName,
+            int slot = 0)
+        {
+            if (slot < 0 || string.IsNullOrEmpty(sceneName))
+                return false;
+
+            Save save = GetOrCreateSave(slot);
+
+            if (save == null)
+                return false;
+
+            save.SceneName = sceneName;
+
+            return true;
+        }
+
+        public string LoadSceneName(int slot = 0)
+        {
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                return string.Empty;
+            }
+
+            return m_Saves[slot].SceneName;
+        }
+
+        // =====================================================================
+        // MOEDAS COLETADAS
+        // =====================================================================
+
+        /// <summary>
+        /// Registra uma moeda como coletada no estado atual.
+        ///
+        /// A lista ficará disponível para integrarmos ao CoinController
+        /// sem precisar mudar o modelo do Save.
+        /// </summary>
+        public void RegisterCollectedCoin(
+            string coinId,
+            int slot = 0)
+        {
+            if (string.IsNullOrEmpty(coinId))
+                return;
+
+            Save save = GetOrCreateSave(slot);
+
+            if (save == null)
+                return;
+
+            if (save.CollectedCoins == null)
+                save.CollectedCoins = new List<string>();
+
+            if (!save.CollectedCoins.Contains(coinId))
+            {
+                save.CollectedCoins.Add(coinId);
+            }
+        }
+
+        public bool IsCoinCollected(
+            string coinId,
+            int slot = 0)
+        {
+            if (string.IsNullOrEmpty(coinId))
+                return false;
+
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                return false;
+            }
+
+            if (m_Saves[slot].CollectedCoins == null)
+                return false;
+
+            return m_Saves[slot].CollectedCoins.Contains(coinId);
+        }
+
+        /// <summary>
+        /// Registra o conjunto de moedas coletadas como estado do checkpoint.
+        /// </summary>
+        public void SaveCheckpointCollectedCoins(
+            List<string> collectedCoins,
+            int slot = 0)
+        {
+            Save save = GetOrCreateSave(slot);
+
+            if (save == null)
+                return;
+
+            if (collectedCoins == null)
+            {
+                save.CheckpointCollectedCoins =
+                    new List<string>();
+
+                return;
+            }
+
+            save.CheckpointCollectedCoins =
+                new List<string>(collectedCoins);
+        }
+
+        public bool IsCoinCollectedAtCheckpoint(
+            string coinId,
+            int slot = 0)
+        {
+            if (string.IsNullOrEmpty(coinId))
+                return false;
+
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                return false;
+            }
+
+            if (m_Saves[slot].CheckpointCollectedCoins == null)
+                return false;
+
+            return m_Saves[slot]
+                .CheckpointCollectedCoins
+                .Contains(coinId);
+        }
+
+        // =====================================================================
+        // NOVA FASE
+        // =====================================================================
+
+        /// <summary>
+        /// Prepara o autosave para começar uma nova fase.
+        ///
+        /// O contador de moedas da nova fase começa em 0
+        /// e o checkpoint da fase anterior não continua válido.
+        /// </summary>
+        public void PrepareNextPhase(
+            string sceneName,
+            int slot = AutoSaveSlot)
+        {
+            if (string.IsNullOrEmpty(sceneName))
+                return;
+
+            Save save = GetOrCreateSave(slot);
+
+            if (save == null)
+                return;
+
+            save.SceneName = sceneName;
+
+            save.Position = Vector3.zero;
+            save.Coin = 0;
+
+            save.CheckpointActivated = false;
+            save.CheckpointPosition = Vector3.zero;
+            save.CheckpointCoin = 0;
+
+            save.CollectedCoins =
+                new List<string>();
+
+            save.CheckpointCollectedCoins =
+                new List<string>();
+
+            SaveFile(slot);
+
+            Debug.Log(
+                $"[SaveSystem] Próxima fase preparada: {sceneName}"
+            );
+        }
+
+        // =====================================================================
+        // SAVE FILE
+        // =====================================================================
 
         public void SaveFile(int slot = 0)
         {
-            File.WriteAllText(m_DataPath, JsonUtility.ToJson(m_Saves[slot].ToJson(), true));
+            if (slot < 0)
+                return;
+
+            Save save = GetOrCreateSave(slot);
+
+            if (save == null)
+                return;
+
+            string json =
+                JsonUtility.ToJson(save, true);
+
+            string encrypted =
+                Encryptor.Encrypt(json);
+
+            string path =
+                GetSlotPath(slot);
+
+            string directory =
+                Path.GetDirectoryName(path);
+
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(
+                path,
+                encrypted
+            );
+
+            Debug.Log(
+                $"Arquivo salvo com sucesso no slot {slot}:\n" +
+                $"{path}"
+            );
+
+            // ================================================================
+            // REGRA DO ENUNCIADO:
+            //
+            // Se salvar em um slot manual, o Slot 0 recebe a mesma informação.
+            // ================================================================
+
+            if (slot >= FirstManualSlot &&
+                slot <= LastManualSlot)
+            {
+                Save autoSave =
+                    Clone(save);
+
+                EnsureSlotExists(AutoSaveSlot);
+
+                m_Saves[AutoSaveSlot] =
+                    autoSave;
+
+                SaveFileOnly(
+                    AutoSaveSlot,
+                    autoSave
+                );
+
+                Debug.Log(
+                    $"[SaveSystem] Slot {slot} também foi replicado para o autosave (slot 0)."
+                );
+            }
         }
+
+        /// <summary>
+        /// Grava um Save específico sem disparar novamente a replicação.
+        /// </summary>
+        private void SaveFileOnly(
+            int slot,
+            Save save)
+        {
+            if (save == null)
+                return;
+
+            string json =
+                JsonUtility.ToJson(save, true);
+
+            string encrypted =
+                Encryptor.Encrypt(json);
+
+            string path =
+                GetSlotPath(slot);
+
+            string directory =
+                Path.GetDirectoryName(path);
+
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(
+                path,
+                encrypted
+            );
+        }
+
+        // =====================================================================
+        // LOAD FILE
+        // =====================================================================
 
         public bool LoadFromFile(int slot = 0)
         {
-            if (!File.Exists(m_DataPath)) return false;
-            m_Saves[slot].FromJson(File.ReadAllText(m_DataPath));
-            return true;
+            if (slot < 0)
+                return false;
+
+            string path =
+                GetSlotPath(slot);
+
+            // ================================================================
+            // COMPATIBILIDADE:
+            //
+            // Se ainda existir o antigo SaveData.json e não existir o novo
+            // Slot 0, tentamos usar o arquivo antigo.
+            // ================================================================
+
+            if (!File.Exists(path) &&
+                slot == AutoSaveSlot &&
+                File.Exists(m_LegacyDataPath))
+            {
+                path = m_LegacyDataPath;
+            }
+
+            if (!File.Exists(path))
+                return false;
+
+            try
+            {
+                string fileContent =
+                    File.ReadAllText(path);
+
+                string json;
+
+                // ============================================================
+                // Primeiro tentamos decriptar.
+                // ============================================================
+
+                try
+                {
+                    json =
+                        Encryptor.Decrypted(fileContent);
+                }
+                catch
+                {
+                    // ========================================================
+                    // Compatibilidade com o antigo arquivo JSON não criptografado.
+                    // ========================================================
+
+                    json = fileContent;
+                }
+
+                Save loadedSave =
+                    JsonUtility.FromJson<Save>(json);
+
+                if (loadedSave == null)
+                    return false;
+
+                EnsureSlotExists(slot);
+
+                m_Saves[slot] =
+                    loadedSave;
+
+                // Garante as listas mesmo em saves antigos.
+                if (m_Saves[slot].CollectedCoins == null)
+                {
+                    m_Saves[slot].CollectedCoins =
+                        new List<string>();
+                }
+
+                if (m_Saves[slot].CheckpointCollectedCoins == null)
+                {
+                    m_Saves[slot].CheckpointCollectedCoins =
+                        new List<string>();
+                }
+
+                Debug.Log(
+                    $"Save carregado do arquivo para o slot {slot}: " +
+                    $"Posição {loadedSave.Position} | " +
+                    $"Moedas {loadedSave.Coin} | " +
+                    $"Cena {loadedSave.SceneName}"
+                );
+
+                // ============================================================
+                // REGRA DO ENUNCIADO:
+                //
+                // Carregou um slot manual?
+                // Copia imediatamente para o slot 0.
+                // ============================================================
+
+                if (slot >= FirstManualSlot &&
+                    slot <= LastManualSlot)
+                {
+                    Save autoSave =
+                        Clone(loadedSave);
+
+                    EnsureSlotExists(AutoSaveSlot);
+
+                    m_Saves[AutoSaveSlot] =
+                        autoSave;
+
+                    SaveFileOnly(
+                        AutoSaveSlot,
+                        autoSave
+                    );
+
+                    Debug.Log(
+                        $"[SaveSystem] Slot {slot} carregado e replicado no autosave."
+                    );
+                }
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(
+                    $"Erro ao ler o arquivo de save: {e.Message}"
+                );
+            }
+
+            return false;
         }
 
+        // =====================================================================
+        // CARREGAR SLOT ESPECÍFICO
+        // =====================================================================
+
+        /// <summary>
+        /// Carrega um slot e retorna true se conseguiu.
+        /// Não muda a API antiga de LoadFromFile.
+        /// </summary>
+        public bool LoadSlot(int slot)
+        {
+            return LoadFromFile(slot);
+        }
+
+        // =====================================================================
+        // CÓPIA
+        // =====================================================================
+
+        private Save Clone(Save original)
+        {
+            if (original == null)
+                return null;
+
+            string json =
+                JsonUtility.ToJson(original);
+
+            return JsonUtility.FromJson<Save>(json);
+        }
+
+        // =====================================================================
+        // SAVE DATA
+        // =====================================================================
 
         /// <summary>
         /// Classe responsável pelos dados do salvamento.
@@ -112,83 +831,187 @@ namespace Core.SaveSystem
         [Serializable]
         public class Save
         {
-            private int m_PlayerLevel;
+            // ================================================================
+            // DADOS QUE JÁ EXISTIAM
+            // ================================================================
 
-            public int PlayerLevel
+            [SerializeField]
+            public Vector3 Position;
+
+            [SerializeField]
+            public int Coin;
+
+            // ================================================================
+            // NOVOS DADOS
+            // ================================================================
+
+            [SerializeField]
+            public string SceneName;
+
+            [SerializeField]
+            public bool CheckpointActivated;
+
+            [SerializeField]
+            public Vector3 CheckpointPosition;
+
+            [SerializeField]
+            public int CheckpointCoin;
+
+            [SerializeField]
+            public List<string> CollectedCoins =
+                new List<string>();
+
+            [SerializeField]
+            public List<string> CheckpointCollectedCoins =
+                new List<string>();
+
+            public Save(
+                Vector3 pos,
+                int coin = 0)
             {
-                get => m_PlayerLevel;
-                set => m_PlayerLevel = value;
+                Position = pos;
+                Coin = coin;
+
+                SceneName = string.Empty;
+
+                CheckpointActivated = false;
+                CheckpointPosition = Vector3.zero;
+                CheckpointCoin = 0;
+
+                CollectedCoins =
+                    new List<string>();
+
+                CheckpointCollectedCoins =
+                    new List<string>();
             }
 
-            private string m_PlayerName;
-
-            public string PlayerName
-            {
-                get => m_PlayerName;
-                set => m_PlayerName = value;
-            }
-
-            public Save(int playerLevel, string playerName)
-            {
-                m_PlayerLevel = playerLevel;
-                m_PlayerName = playerName;
-            }
-
-            /// <summary>
-            /// Método que converte a classe para Json.
-            /// </summary>
-            /// <returns>
-            /// Retorna o próprio json em string.
-            /// </returns>
             public string ToJson()
             {
-                return JsonUtility.ToJson(this);
+                return JsonUtility.ToJson(
+                    this
+                );
             }
 
             public void FromJson(string json)
             {
-                JsonUtility.FromJsonOverwrite(json, this);
+                JsonUtility.FromJsonOverwrite(
+                    json,
+                    this
+                );
             }
         }
-        
+
+        // =====================================================================
+        // ENCRYPTOR
+        // =====================================================================
+
         private ref struct Encryptor
         {
-            private static readonly string m_IV = "1a1a1a1a1a1a1a1a";
-            private static readonly string m_Key = "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a13";
-            
-            public static string IV => m_IV;
-            public static string Key => m_Key;
-            
+            // Mantidos no mesmo modelo do seu código.
+            private static readonly string m_IV =
+                "1a1a1a1a1a1a1a1a";
 
-            public static string Encrypt(string decrypted)
+            private static readonly string m_Key =
+                "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a13";
+
+            public static string IV => m_IV;
+
+            public static string Key => m_Key;
+
+            public static string Encrypt(
+                string decrypted)
             {
-                var textbytes = Encoding.ASCII.GetBytes(decrypted);
-                using var endec = new AesCryptoServiceProvider();
+                var textbytes =
+                    Encoding.ASCII.GetBytes(
+                        decrypted
+                    );
+
+                using var endec =
+                    new AesCryptoServiceProvider();
+
                 endec.BlockSize = 128;
                 endec.KeySize = 256;
-                endec.IV = Encoding.ASCII.GetBytes(IV);
-                endec.Key = Encoding.ASCII.GetBytes(Key);
-                endec.Padding = PaddingMode.PKCS7;
-                endec.Mode = CipherMode.CBC;
-                using var icrypt = endec.CreateEncryptor(endec.Key, endec.IV);
-                var enc = icrypt.TransformFinalBlock(textbytes, 0, textbytes.Length);
-                return Convert.ToBase64String(enc);
+
+                endec.IV =
+                    Encoding.ASCII.GetBytes(
+                        IV
+                    );
+
+                endec.Key =
+                    Encoding.ASCII.GetBytes(
+                        Key
+                    );
+
+                endec.Padding =
+                    PaddingMode.PKCS7;
+
+                endec.Mode =
+                    CipherMode.CBC;
+
+                using var icrypt =
+                    endec.CreateEncryptor(
+                        endec.Key,
+                        endec.IV
+                    );
+
+                var enc =
+                    icrypt.TransformFinalBlock(
+                        textbytes,
+                        0,
+                        textbytes.Length
+                    );
+
+                return Convert.ToBase64String(
+                    enc
+                );
             }
 
-            public static string Decrypted(string encrypted)
+            public static string Decrypted(
+                string encrypted)
             {
-                var textbytes = Convert.FromBase64String(encrypted);
-                using var endec = new AesCryptoServiceProvider();
+                var textbytes =
+                    Convert.FromBase64String(
+                        encrypted
+                    );
+
+                using var endec =
+                    new AesCryptoServiceProvider();
+
                 endec.BlockSize = 128;
                 endec.KeySize = 256;
-                endec.IV = Encoding.ASCII.GetBytes(IV);
-                endec.Key = Encoding.ASCII.GetBytes(Key);
-                endec.Padding = PaddingMode.PKCS7;
-                endec.Mode = CipherMode.CBC;
-                var icrypt = endec.CreateDecryptor(endec.Key, endec.IV);
-                var enc = icrypt.TransformFinalBlock(textbytes, 0, textbytes.Length);
-                icrypt.Dispose();
-                return Encoding.ASCII.GetString(enc);
+
+                endec.IV =
+                    Encoding.ASCII.GetBytes(
+                        IV
+                    );
+
+                endec.Key =
+                    Encoding.ASCII.GetBytes(
+                        Key
+                    );
+
+                endec.Padding =
+                    PaddingMode.PKCS7;
+
+                endec.Mode =
+                    CipherMode.CBC;
+
+                using var icrypt =
+                    endec.CreateDecryptor(
+                        endec.Key,
+                        endec.IV
+                    );
+
+                var enc =
+                    icrypt.TransformFinalBlock(
+                        textbytes,
+                        0,
+                        textbytes.Length
+                    );
+
+                return Encoding.ASCII.GetString(
+                    enc
+                );
             }
         }
     }

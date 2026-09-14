@@ -1,16 +1,23 @@
 using System;
+using Core;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
 
 public class GUIManager : MonoBehaviour
 {
-
+    private static GUIManager s_Instance;
+    public static GUIManager Singleton => s_Instance;
+    
+    
     public GameObject Canvas;
-    public static GUIManager Instance;
-
     public TextMeshProUGUI txtQuantity;
 
+    private void Awake()
+    {
+        s_Instance = this;
+    }
+    
     void OnEnable()
     {
         EventTriggers.OnLoaded += Load;
@@ -23,9 +30,9 @@ public class GUIManager : MonoBehaviour
 
     private void Start()
     {
-        if (Instance != null && Instance != this)
-            Destroy(this.gameObject);
-        Instance = this;
+        if (SaveSystem.Singleton == null || !SaveSystem.Singleton!.LoadPlayerCoins(out var coins)) return;
+        txtQuantity.text = coins.ToString();
+        Debug.Log(coins);
     }
 
     private void Load(int value)

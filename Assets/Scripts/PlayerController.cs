@@ -5,8 +5,9 @@ using Core;
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Input")]
-    [Tooltip("Drag the Move action (Vector2) from the Input System asset here (use an Input Action Reference)")]
+    private static PlayerController s_Instance;
+    public static PlayerController Singleton => s_Instance;
+    
     private ActionAsset m_Asset;
 
     [Header("Movement")]
@@ -27,42 +28,93 @@ public class PlayerController : MonoBehaviour
 
     void Awake()
     {
+        if (s_Instance != null && s_Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        s_Instance = this;
         m_Asset = new ActionAsset();
-        m_Body = GetComponent<Rigidbody>();
-        if (m_Body == null)
-            Debug.LogError("PlayerController requires a Rigidbody on the same GameObject.");
     }
 
     void OnEnable()
     {
-        if (m_Asset != null || m_Asset?.asset != null)
-        {
-            m_Asset.Enable();
-            m_Asset.asset.Enable();
-            m_Asset.asset.FindAction("Move").performed += HandleMove;
-            m_Asset.asset.FindAction("Move").canceled  += HandleMove;
-            m_Asset.asset.FindAction("Jump").performed += HandleJump;
-            m_Asset.asset.FindAction("Jump").canceled  += HandleJump;
-        }
+        // m_Asset.Enable();
+        m_Asset.asset.Enable();
+        m_Asset.asset["Move"].performed += HandleMove;
+        m_Asset.asset["Move"].canceled  += HandleMove;
+        m_Asset.asset["Jump"].performed += HandleJump;
+        m_Asset.asset["Jump"].canceled  += HandleJump;
 
         GameEventSystem.OnPlayerCollidedWithDoor += HandlePlayerCollision;
     }
 
     void OnDisable()
     {
-        if (m_Asset != null || m_Asset?.asset != null)
-        {
-            m_Asset.asset.FindAction("Move").performed -= HandleMove;
-            m_Asset.asset.FindAction("Move").canceled  -= HandleMove;
-            m_Asset.asset.FindAction("Jump").performed -= HandleJump;
-            m_Asset.asset.FindAction("Jump").canceled  -= HandleJump;
-            
-            m_Asset.asset.Disable();
-            m_Asset.Disable();
-            m_Asset.Dispose();
-        }
+        m_Asset.asset["Move"].performed -= HandleMove;
+        m_Asset.asset["Move"].canceled  -= HandleMove;
+        m_Asset.asset["Jump"].performed -= HandleJump;
+        m_Asset.asset["Jump"].canceled  -= HandleJump;
+        
+        m_Asset.asset.Disable();
+        m_Asset.Disable();
+        m_Asset.Dispose();
         
         GameEventSystem.OnPlayerCollidedWithDoor -= HandlePlayerCollision;
+    }
+
+    private void Start()
+    {
+        m_Body = GetComponent<Rigidbody>();
+        if (m_Body == null)
+            Debug.LogError("PlayerController requires a Rigidbody on the same GameObject.");
+
+        // Tenta carregar o save assim que o Player nasce na cena
+        LoadSavedPosition();
+    }
+
+    private void LoadSavedPosition()
+    {
+        if (SaveSystem.Singleton != null)
+        {
+            // Tenta ler o arquivo de save
+            if (SaveSystem.Singleton.LoadFromFile())
+            {
+                // Se conseguir a posição salva, aplica no Player
+                if (SaveSystem.Singleton.LoadPosition(out Vector3 savedPos, 0))
+                {
+                    SetPosition(savedPos);
+                    Debug.Log($"Posição do Player restaurada para: {savedPos}");
+                }
+            }
+        }
+    }
+
+    public void SetPosition(Vector3 position)
+    {
+        transform.position = position;
+
+        if (m_Body != null)
+        {
+            m_Body.linearVelocity = Vector3.zero;
+            m_Body.angularVelocity = Vector3.zero;
+            m_Body.position = position;
+        }
+
+        Physics.SyncTransforms(); // Força a sincronização do motor de física da Unity
+    }
+
+    public async Awaitable MoveTowards(Vector3 target, float time)
+    {
+        var counter = 0f;
+        while (counter < time)
+        {
+            await Awaitable.WaitForSecondsAsync(Time.deltaTime);
+            m_Body.linearVelocity = new Vector3(Mathf.MoveTowards(m_Body.linearVelocity.x, target.x, (target.x - m_Body.linearVelocity.x) * counter / time),
+                                                Mathf.MoveTowards(m_Body.linearVelocity.y, target.y, (target.y - m_Body.linearVelocity.y) * counter / time),
+                                                Mathf.MoveTowards(m_Body.linearVelocity.z, target.z, (target.z - m_Body.linearVelocity.z) * counter / time));
+            counter += Time.deltaTime;
+        }
     }
 
     void HandleMove(InputAction.CallbackContext ctx)

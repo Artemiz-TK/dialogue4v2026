@@ -80,7 +80,7 @@ namespace Core
 
         public bool IsInGameplay()
         {
-            return m_CurrentState == GameState.Fase1 || m_CurrentState == GameState.Fase2;
+            return m_CurrentState is GameState.Fase1 or GameState.Fase2;
         }
 
         private bool CanTransitionTo(GameState newState)
@@ -92,14 +92,122 @@ namespace Core
                 case GameState.Splash:
                     return newState == GameState.MenuPrincipal;
                 case GameState.MenuPrincipal:
-                    return newState == GameState.Fase1;
+                    return newState is GameState.Fase1 or GameState.Fase2;
                 case GameState.Fase1:
+                    return newState is GameState.Fase2 or GameState.MenuPrincipal;
+                case GameState.Fase2:
                     return newState == GameState.MenuPrincipal;
                 default:
                     return false;
             }
         }
 
+        public async Awaitable LoadLastPhase()
+        {
+            await SceneManager.LoadSceneAsync("Fase2", LoadSceneMode.Single);
+            await SceneManager.LoadSceneAsync("GUI", LoadSceneMode.Additive);
+            
+            State = GameState.Fase1;
+        }
+        
+        public void StartNewGame()
+        {
+            // if (SaveSystem.Singleton != null)
+            // {
+            //     SaveSystem.Singleton.NewGame();
+            // }
+
+            StartGame();
+        }
+
+        // =====================================================================
+        // LOAD DE SLOT
+        // =====================================================================
+
+        public void LoadSaveSlot(int slot)
+        {
+            if (SaveSystem.Singleton == null)
+            {
+                Debug.LogError(
+                    "[GameManager] SaveSystem não encontrado."
+                );
+
+                return;
+            }
+
+            if (!SaveSystem.Singleton.LoadFromFile(slot))
+            {
+                Debug.LogWarning(
+                    $"[GameManager] Não foi possível carregar o slot {slot}."
+                );
+
+                return;
+            }
+
+            string sceneName =
+                SaveSystem.Singleton.LoadSceneName(slot);
+
+            if (string.IsNullOrEmpty(sceneName))
+            {
+                Debug.LogWarning(
+                    $"[GameManager] Slot {slot} não possui uma cena salva."
+                );
+
+                return;
+            }
+
+            StartCoroutine(
+                LoadSavedSceneRoutine(sceneName)
+            );
+        }
+
+        // =====================================================================
+        // LOAD DA CENA SALVA
+        // =====================================================================
+
+        private IEnumerator LoadSavedSceneRoutine(string sceneName)
+        {
+            if (sceneName != "Fase1" &&
+                sceneName != "Fase2")
+            {
+                Debug.LogWarning(
+                    $"GameManager: Cena de save inválida: {sceneName}"
+                );
+
+                yield break;
+            }
+
+            yield return SceneManager.LoadSceneAsync(
+                sceneName,
+                LoadSceneMode.Single
+            );
+
+            yield return SceneManager.LoadSceneAsync(
+                "GUI",
+                LoadSceneMode.Additive
+            );
+
+            if (sceneName == "Fase1")
+            {
+                State = GameState.Fase1;
+            }
+            else
+            {
+                State = GameState.Fase2;
+            }
+
+            Debug.Log(
+                $"GameManager: Save carregado na cena '{sceneName}'."
+            );
+        }
+
+        public void LoadSceneWithGUI(string sceneName)
+        {
+            SceneManager.LoadScene(sceneName);
+            SceneManager.LoadScene("GUI", LoadSceneMode.Additive);
+            State = m_HashTable.Mapper[sceneName];
+        }
+        
         public void LoadScene(string scene)
         {
             var state = m_HashTable.Mapper[scene];
@@ -171,6 +279,22 @@ namespace Core
             }
 
             SceneManager.LoadScene(sceneName);
+        }
+        
+        // ============================================================
+// CARREGAMENTO DE SAVE
+// ============================================================
+
+        public void LoadSavedScene(string sceneName)
+        {
+            StartCoroutine(
+                LoadSavedSceneRoutine(sceneName)
+            );
+        }
+
+        public void LoadSceneWithoutState(string sceneName, LoadSceneMode mode = LoadSceneMode.Single)
+        {
+            SceneManager.LoadScene(sceneName, mode);
         }
     }
 }
