@@ -7,7 +7,7 @@ namespace Core
         private static QuantityManager s_Instance;
         public static QuantityManager Singleton => s_Instance;
 
-        private int m_TotalQuantity = 0;
+        private int m_TotalQuantity;
 
         public int Quantity => m_TotalQuantity;
 
@@ -44,7 +44,7 @@ namespace Core
                 return;
             }
 
-            if (!SaveSystem.Singleton.LoadPlayerCoins(
+            if (!SaveSystem.Singleton.LoadProgressCoins(
                     out int coins))
             {
                 Debug.Log(
@@ -74,6 +74,15 @@ namespace Core
             );
         }
 
+        public void SetQuantity(int quantity)
+        {
+            m_TotalQuantity = quantity;
+
+            EventTriggers.LoadTrigger(
+                m_TotalQuantity
+            );
+        }
+
         public int GetQuantity()
         {
             return m_TotalQuantity;
@@ -81,7 +90,7 @@ namespace Core
 
         public void ResetQuantity()
         {
-            m_TotalQuantity = 0;
+            SetQuantity(0);
 
             EventTriggers.LoadTrigger(
                 m_TotalQuantity

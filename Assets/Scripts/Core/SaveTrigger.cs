@@ -50,30 +50,20 @@ namespace Core
                 return;
             }
 
-            // ============================================================
-            // DADOS ATUAIS
-            // ============================================================
-
-            Vector3 playerPosition =
-                other.transform.position;
-
             int coins = 0;
 
             if (m_Quantity != null)
             {
-                coins = m_Quantity.Quantity;
+                coins =
+                    m_Quantity.Quantity;
             }
 
-            string sceneName =
-                SceneManager.GetActiveScene().name;
-
-            // ============================================================
-            // SALVA O CHECKPOINT
-            // ============================================================
+            Vector3 checkpointPosition =
+                transform.position;
 
             bool checkpointSaved =
                 SaveSystem.Singleton.SaveCheckpoint(
-                    playerPosition,
+                    checkpointPosition,
                     coins,
                     m_Slot
                 );
@@ -87,32 +77,9 @@ namespace Core
                 return;
             }
 
-            // ============================================================
-            // SALVA A CENA EXPLICITAMENTE
-            // ============================================================
-
-            SaveSystem.Singleton.SaveSceneName(
-                sceneName,
-                m_Slot
-            );
-
-            // ============================================================
-            // GRAVA NOVAMENTE O ARQUIVO
-            //
-            // SaveCheckpoint já grava o arquivo, mas como acabamos
-            // de definir SceneName depois dele, precisamos gravar
-            // novamente para garantir que a cena esteja no arquivo.
-            // ============================================================
-
-            SaveSystem.Singleton.SaveFile(
-                m_Slot
-            );
-
             Debug.Log(
-                $"[SaveTrigger] CHECKPOINT SALVO COM SUCESSO\n" +
-                $"Slot: {m_Slot}\n" +
-                $"Cena: {sceneName}\n" +
-                $"Posição: {playerPosition}\n" +
+                $"[SaveTrigger] Checkpoint processado.\n" +
+                $"Posição: {checkpointPosition}\n" +
                 $"Moedas: {coins}"
             );
         }

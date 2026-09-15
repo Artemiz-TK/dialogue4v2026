@@ -192,48 +192,39 @@ namespace Core
                 return;
             }
 
-            if (QuantityManager.Singleton == null)
+            if (GameManager.Singleton == null)
             {
                 Debug.LogError(
-                    "[PauseMenuEvents] QuantityManager não encontrado."
+                    "[PauseMenuEvents] GameManager não encontrado."
                 );
 
                 return;
             }
 
-            int coins =
-                QuantityManager.Singleton.Quantity;
-
-            Vector3 playerPosition =
-                GetPlayerPosition();
-
             string sceneName =
-                UnityEngine.SceneManagement
-                    .SceneManager
+                UnityEngine.SceneManagement.SceneManager
                     .GetActiveScene()
                     .name;
 
-            SaveSystem.Singleton.SavePosition(
-                playerPosition,
-                slot
-            );
+            bool saved =
+                SaveSystem.Singleton.SaveManualSlot(
+                    slot,
+                    GameManager.Singleton.CurrentPhaseStartPosition,
+                    sceneName
+                );
 
-            SaveSystem.Singleton.SavePlayerCoins(
-                coins,
-                slot
-            );
+            if (!saved)
+            {
+                Debug.LogWarning(
+                    $"[PauseMenuEvents] Não foi possível salvar o Slot {slot}."
+                );
 
-            SaveSystem.Singleton.SaveSceneName(
-                sceneName,
-                slot
-            );
-
-            SaveSystem.Singleton.SaveFile(slot);
+                return;
+            }
 
             Debug.Log(
-                $"[PauseMenuEvents] Jogo salvo no slot {slot}. " +
-                $"Moedas: {coins} | " +
-                $"Cena: {sceneName}"
+                $"[PauseMenuEvents] Slot {slot} salvo usando " +
+                "o último checkpoint válido."
             );
 
             BackToPauseMenu();
@@ -323,27 +314,6 @@ namespace Core
             GameManager.Singleton.LoadScene(
                 "MenuPrincipal"
             );
-        }
-
-        // ============================================================
-        // PLAYER
-        // ============================================================
-
-        private Vector3 GetPlayerPosition()
-        {
-            GameObject player =
-                GameObject.FindGameObjectWithTag("Player");
-
-            if (player == null)
-            {
-                Debug.LogWarning(
-                    "[PauseMenuEvents] Player não encontrado."
-                );
-
-                return Vector3.zero;
-            }
-
-            return player.transform.position;
         }
 
         // ============================================================

@@ -269,47 +269,200 @@ namespace Core
             if (slot < 0)
                 return false;
 
-            Save save = GetOrCreateSave(slot);
+            Save save =
+                GetOrCreateSave(slot);
 
             if (save == null)
                 return false;
 
-            // ============================================================
-            // CENA ATUAL
-            // ============================================================
-
             string sceneName =
                 SceneManager.GetActiveScene().name;
 
-            save.SceneName = sceneName;
+            // ============================================================
+            // SE O CHECKPOINT DESTA FASE JÁ FOI ATIVADO,
+            // NÃO SOBRESCREVE O ESTADO ORIGINAL.
+            // ============================================================
+
+            if (save.CheckpointActivated &&
+                save.SceneName == sceneName)
+            {
+                Debug.Log(
+                    $"[SaveSystem] Checkpoint da cena '{sceneName}' " +
+                    "já foi ativado. Estado preservado."
+                );
+
+                return true;
+            }
 
             // ============================================================
-            // ESTADO ATUAL
+            // CENA
             // ============================================================
 
-            save.Position = checkpointPosition;
-            save.Coin = coins;
+            save.SceneName =
+                sceneName;
 
             // ============================================================
             // ESTADO DO CHECKPOINT
             // ============================================================
 
-            save.CheckpointActivated = true;
-            save.CheckpointPosition = checkpointPosition;
-            save.CheckpointCoin = coins;
+            save.CheckpointActivated =
+                true;
+
+            save.CheckpointPosition =
+                checkpointPosition;
+
+            save.CheckpointCoin =
+                coins;
 
             // ============================================================
-            // SALVA O ARQUIVO
+            // ESTADO CARREGÁVEL
+            // ============================================================
+
+            save.Position =
+                checkpointPosition;
+
+            save.Coin =
+                coins;
+
+            // ============================================================
+            // SALVA
             // ============================================================
 
             SaveFile(slot);
 
             Debug.Log(
                 $"[SaveSystem] CHECKPOINT salvo.\n" +
-                $"Slot: {slot}\n" +
                 $"Cena: {sceneName}\n" +
                 $"Posição: {checkpointPosition}\n" +
                 $"Moedas: {coins}"
+            );
+
+            return true;
+        }
+
+
+        /// <summary>
+        /// Salva um jogo manualmente utilizando o último checkpoint válido
+        /// da fase atual.
+        ///
+        /// Se o checkpoint ainda não foi ativado, utiliza:
+        /// - posição inicial da fase;
+        /// - 0 moedas;
+        /// - nenhuma moeda coletada no checkpoint.
+        ///
+        /// O slot 0 continua sendo a fonte do autosave.
+        /// </summary>
+        public bool SaveManualSlot(
+            int slot,
+            Vector3 initialPosition,
+            string sceneName)
+        {
+            if (slot < FirstManualSlot ||
+                slot > LastManualSlot)
+            {
+                Debug.LogWarning(
+                    $"[SaveSystem] Slot manual inválido: {slot}"
+                );
+
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(sceneName))
+            {
+                Debug.LogWarning(
+                    "[SaveSystem] Cena inválida ao salvar slot manual."
+                );
+
+                return false;
+            }
+
+            Save save;
+
+            // ============================================================
+            // VERIFICA SE EXISTE UM CHECKPOINT VÁLIDO PARA ESTA FASE
+            // ============================================================
+
+            bool hasCheckpoint =
+                AutoSaveSlot < m_Saves.Count &&
+                m_Saves[AutoSaveSlot] != null &&
+                m_Saves[AutoSaveSlot].CheckpointActivated &&
+                m_Saves[AutoSaveSlot].SceneName == sceneName;
+
+            if (hasCheckpoint)
+            {
+                // --------------------------------------------------------
+                // COPIA O ESTADO DO CHECKPOINT
+                // --------------------------------------------------------
+
+                save = Clone(
+                    m_Saves[AutoSaveSlot]
+                );
+
+                Debug.Log(
+                    $"[SaveSystem] Slot {slot} utilizará o checkpoint.\n" +
+                    $"Posição: {save.CheckpointPosition}\n" +
+                    $"Moedas: {save.CheckpointCoin}"
+                );
+            }
+            else
+            {
+                // --------------------------------------------------------
+                // NÃO EXISTE CHECKPOINT:
+                // salva o início da fase
+                // --------------------------------------------------------
+
+                save = new Save(
+                    initialPosition,
+                    0
+                );
+
+                save.SceneName =
+                    sceneName;
+
+                save.CheckpointActivated =
+                    false;
+
+                save.CheckpointPosition =
+                    Vector3.zero;
+
+                save.CheckpointCoin =
+                    0;
+
+                save.CollectedCoins =
+                    new List<string>();
+
+                save.CheckpointCollectedCoins =
+                    new List<string>();
+
+                Debug.Log(
+                    $"[SaveSystem] Slot {slot} não possui checkpoint. " +
+                    $"Usando posição inicial da fase."
+                );
+            }
+
+            // ============================================================
+            // GRAVA O SAVE NA MEMÓRIA
+            // ============================================================
+
+            EnsureSlotExists(slot);
+
+            m_Saves[slot] =
+                save;
+
+            // ============================================================
+            // GRAVA O ARQUIVO
+            //
+            // SaveFile também replica automaticamente para o Slot 0.
+            // ============================================================
+
+            SaveFile(slot);
+
+            Debug.Log(
+                $"[SaveSystem] Slot manual {slot} salvo com sucesso.\n" +
+                $"Cena: {save.SceneName}\n" +
+                $"Posição: {save.Position}\n" +
+                $"Moedas: {save.Coin}\n" +
+                $"Checkpoint: {save.CheckpointActivated}"
             );
 
             return true;
@@ -355,6 +508,35 @@ namespace Core
             }
 
             pos = save.CheckpointPosition;
+
+            return true;
+        }
+
+        public bool LoadProgressCoins(
+            out int coins,
+            int slot = AutoSaveSlot)
+        {
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                coins = 0;
+                return false;
+            }
+
+            Save save =
+                m_Saves[slot];
+
+            if (save.CheckpointActivated)
+            {
+                coins =
+                    save.CheckpointCoin;
+            }
+            else
+            {
+                coins =
+                    0;
+            }
 
             return true;
         }

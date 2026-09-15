@@ -21,15 +21,13 @@ namespace Core
 
         private class HashMapper
         {
-            private readonly Dictionary<string, GameState> m_Mapper = new();
-            
-            public Dictionary<string, GameState> Mapper => m_Mapper;
+            public readonly Dictionary<string, GameState> Mapper = new();
 
             public HashMapper()
             {
                 foreach (var state in Enum.GetValues(typeof(GameState)).Cast<GameState>())
                 {
-                    m_Mapper[state.ToString()] = state;
+                    Mapper[state.ToString()] = state;
                 }
             }
         }
@@ -48,6 +46,11 @@ namespace Core
                     OnGameplayEntered?.Invoke();
             }
         }
+
+        private Vector3 m_CurrentPhaseStartPosition;
+
+        public Vector3 CurrentPhaseStartPosition =>
+            m_CurrentPhaseStartPosition;
 
         public static GameManager Singleton => s_Instance;
         public static event Action OnGameplayEntered;
@@ -177,24 +180,63 @@ namespace Core
                 yield break;
             }
 
+            // ============================================================
+            // CARREGA A FASE
+            // ============================================================
+
             yield return SceneManager.LoadSceneAsync(
                 sceneName,
                 LoadSceneMode.Single
             );
+
+            // Registra a posição original da fase.
+            CapturePhaseStartPosition();
+
+            // ============================================================
+            // CARREGA A GUI
+            // ============================================================
 
             yield return SceneManager.LoadSceneAsync(
                 "GUI",
                 LoadSceneMode.Additive
             );
 
-            if (sceneName == "Fase1")
+            yield return null;
+
+            // ============================================================
+            // RESTAURA CHECKPOINT
+            // ============================================================
+
+            if (SaveSystem.Singleton != null &&
+                SaveSystem.Singleton.HasCheckpoint())
             {
-                State = GameState.Fase1;
+                if (SaveSystem.Singleton.LoadCheckpointCoins(
+                        out int checkpointCoins))
+                {
+                    if (QuantityManager.Singleton != null)
+                    {
+                        QuantityManager.Singleton.SetQuantity(
+                            checkpointCoins
+                        );
+                    }
+                }
             }
             else
             {
-                State = GameState.Fase2;
+                if (QuantityManager.Singleton != null)
+                {
+                    QuantityManager.Singleton.ResetQuantity();
+                }
             }
+
+            // ============================================================
+            // ESTADO
+            // ============================================================
+
+            State =
+                sceneName == "Fase1"
+                    ? GameState.Fase1
+                    : GameState.Fase2;
 
             Debug.Log(
                 $"GameManager: Save carregado na cena '{sceneName}'."
@@ -238,6 +280,33 @@ namespace Core
             Debug.Log($"GameManager: State changed to {m_CurrentState}");
         }
 
+        private void CapturePhaseStartPosition()
+        {
+            var player =
+                GameObject.FindGameObjectWithTag("Player");
+
+            if (player == null)
+            {
+                Debug.LogWarning(
+                    "[GameManager] Não foi possível encontrar o Player " +
+                    "para registrar a posição inicial da fase."
+                );
+
+                m_CurrentPhaseStartPosition =
+                    Vector3.zero;
+
+                return;
+            }
+
+            m_CurrentPhaseStartPosition =
+                player.transform.position;
+
+            Debug.Log(
+                $"[GameManager] Posição inicial da fase registrada: " +
+                $"{m_CurrentPhaseStartPosition}"
+            );
+        }
+
         private void HandleGameplayEnter()
         {
             Cursor.visible = false;
@@ -251,13 +320,25 @@ namespace Core
 
         private IEnumerator StartGameRoutine()
         {
-            yield return SceneManager.LoadSceneAsync("Fase1", LoadSceneMode.Single);
+            yield return SceneManager.LoadSceneAsync(
+                "Fase1",
+                LoadSceneMode.Single
+            );
 
-            // 2. Carrega a cena de interface por cima (Aditiva)
-            yield return SceneManager.LoadSceneAsync("GUI", LoadSceneMode.Additive);
+            // A posição original da Fase 1 é registrada
+            // antes de qualquer restauração de save.
+            CapturePhaseStartPosition();
+
+            yield return SceneManager.LoadSceneAsync(
+                "GUI",
+                LoadSceneMode.Additive
+            );
 
             State = GameState.Fase1;
-            Debug.Log($"GameManager: State changed to {m_CurrentState}");
+
+            Debug.Log(
+                $"GameManager: State changed to {m_CurrentState}"
+            );
         }
 
         public void Quit()
