@@ -2290,7 +2290,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Core.SaveTrigger
   m_Slot: 0
-  m_CheckpointId: 2
+  m_CheckpointId: 3
 --- !u!65 &1861939898
 BoxCollider:
   m_ObjectHideFlags: 0
