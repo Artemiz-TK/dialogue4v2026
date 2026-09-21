@@ -107,10 +107,42 @@ namespace Core
 
         public async Awaitable LoadLastPhase()
         {
-            await SceneManager.LoadSceneAsync("Fase2", LoadSceneMode.Single);
-            await SceneManager.LoadSceneAsync("GUI", LoadSceneMode.Additive);
-            
-            State = GameState.Fase1;
+            // ============================================================
+            // PREPARA A NOVA FASE
+            // ============================================================
+
+            if (SaveSystem.Singleton != null)
+            {
+                SaveSystem.Singleton.PrepareNextPhase(
+                    "Fase2"
+                );
+            }
+
+            if (QuantityManager.Singleton != null)
+            {
+                QuantityManager.Singleton.ResetQuantity();
+            }
+
+            // ============================================================
+            // CARREGA FASE 2
+            // ============================================================
+
+            await SceneManager.LoadSceneAsync(
+                "Fase2",
+                LoadSceneMode.Single
+            );
+
+            await SceneManager.LoadSceneAsync(
+                "GUI",
+                LoadSceneMode.Additive
+            );
+
+            State = GameState.Fase2;
+
+            Debug.Log(
+                "[GameManager] Fase 2 carregada. " +
+                "Quantidade de moedas resetada."
+            );
         }
         
         public void StartNewGame()
@@ -210,6 +242,22 @@ namespace Core
             if (SaveSystem.Singleton != null &&
                 SaveSystem.Singleton.HasCheckpoint())
             {
+                if (SaveSystem.Singleton.LoadCheckpointPosition(
+                        out Vector3 checkpointPosition))
+                {
+                    if (PlayerController.Singleton != null)
+                    {
+                        PlayerController.Singleton.SetPosition(
+                            checkpointPosition
+                        );
+
+                        Debug.Log(
+                            $"[GameManager] Player restaurado no checkpoint: " +
+                            $"{checkpointPosition}"
+                        );
+                    }
+                }
+
                 if (SaveSystem.Singleton.LoadCheckpointCoins(
                         out int checkpointCoins))
                 {
@@ -293,7 +341,7 @@ namespace Core
                 );
 
                 m_CurrentPhaseStartPosition =
-                    Vector3.zero;
+                    new Vector3(0f, 1.49f, 20.58f);
 
                 return;
             }

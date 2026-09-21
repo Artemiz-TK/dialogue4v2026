@@ -6,8 +6,13 @@ namespace Core
     [RequireComponent(typeof(Collider))]
     public class SaveTrigger : MonoBehaviour
     {
+        [Header("Save Settings")]
         [SerializeField]
         private int m_Slot = 0;
+
+        [Header("Checkpoint")]
+        [SerializeField]
+        private int m_CheckpointId;
 
         private Collider m_Collider;
         private QuantityManager m_Quantity;
@@ -65,6 +70,7 @@ namespace Core
                 SaveSystem.Singleton.SaveCheckpoint(
                     checkpointPosition,
                     coins,
+                    m_CheckpointId,
                     m_Slot
                 );
 

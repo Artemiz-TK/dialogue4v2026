@@ -30,9 +30,17 @@ public class GUIManager : MonoBehaviour
 
     private void Start()
     {
-        if (SaveSystem.Singleton == null || !SaveSystem.Singleton!.LoadPlayerCoins(out var coins)) return;
-        txtQuantity.text = coins.ToString();
-        Debug.Log(coins);
+        if (QuantityManager.Singleton == null)
+        {
+            Debug.LogWarning(
+                "[GUIManager] QuantityManager não encontrado."
+            );
+
+            return;
+        }
+
+        txtQuantity.text =
+            QuantityManager.Singleton.Quantity.ToString();
     }
 
     private void Load(int value)

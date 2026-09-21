@@ -66,27 +66,12 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {
         m_Body = GetComponent<Rigidbody>();
+
         if (m_Body == null)
-            Debug.LogError("PlayerController requires a Rigidbody on the same GameObject.");
-
-        // Tenta carregar o save assim que o Player nasce na cena
-        LoadSavedPosition();
-    }
-
-    private void LoadSavedPosition()
-    {
-        if (SaveSystem.Singleton != null)
         {
-            // Tenta ler o arquivo de save
-            if (SaveSystem.Singleton.LoadFromFile())
-            {
-                // Se conseguir a posição salva, aplica no Player
-                if (SaveSystem.Singleton.LoadPosition(out Vector3 savedPos, 0))
-                {
-                    SetPosition(savedPos);
-                    Debug.Log($"Posição do Player restaurada para: {savedPos}");
-                }
-            }
+            Debug.LogError(
+                "PlayerController requires a Rigidbody on the same GameObject."
+            );
         }
     }
 
