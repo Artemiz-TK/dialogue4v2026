@@ -17,6 +17,8 @@ namespace Core
         private Collider m_Collider;
         private QuantityManager m_Quantity;
 
+        private bool m_Loaded = false;
+
         private void Start()
         {
             if (TryGetComponent<Collider>(out var col))
@@ -39,6 +41,11 @@ namespace Core
                     "[SaveTrigger] QuantityManager não encontrado."
                 );
             }
+            
+            if (SaveSystem.Singleton.HasCheckpoint(m_Slot))
+                return;
+            
+            _ = SaveCheckpoint(m_Slot);
         }
 
         private void OnTriggerEnter(Collider other)
@@ -46,13 +53,25 @@ namespace Core
             if (!other.CompareTag("Player"))
                 return;
 
+            if (SaveSystem.Singleton is null)
+                return;
+
+            if (SaveSystem.Singleton.HasCheckpoint(m_Slot) && m_Loaded)
+                return;
+
+            _ = SaveCheckpoint(m_Slot);
+            m_Loaded = true;
+        }
+
+        private bool SaveCheckpoint(int slot)
+        {
             if (SaveSystem.Singleton == null)
             {
                 Debug.LogError(
                     "[SaveTrigger] SaveSystem não encontrado."
                 );
 
-                return;
+                return false;
             }
 
             int coins = 0;
@@ -80,7 +99,7 @@ namespace Core
                     "[SaveTrigger] Não foi possível salvar o checkpoint."
                 );
 
-                return;
+                return false;
             }
 
             Debug.Log(
@@ -88,6 +107,8 @@ namespace Core
                 $"Posição: {checkpointPosition}\n" +
                 $"Moedas: {coins}"
             );
+
+            return true;
         }
     }
 }

@@ -168,6 +168,34 @@ namespace Core
         }
 
         /// <summary>
+        /// Verifica se o save já foi carregado via <see cref="slot"/>.
+        /// </summary>
+        /// <param name="slot">O argumento que orienta</param>
+        /// <returns>Retorna o membro IsLoaded</returns>
+        public bool HasLoaded(int slot = 0)
+        {
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+                return false;
+
+            return m_Saves[slot].IsLoaded;
+        }
+
+        public bool ModifyLoad(bool loaded, int slot = 0)
+        {
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                return false;
+            }
+            
+            m_Saves[slot].IsLoaded = loaded;
+            return true;
+        }
+
+        /// <summary>
         /// Retorna os dados do slot já carregados em memória.
         /// </summary>
         public Save GetSave(int slot)
@@ -1009,6 +1037,9 @@ namespace Core
             public bool CheckpointActivated;
 
             [SerializeField]
+            public bool IsLoaded;
+
+            [SerializeField]
             public Vector3 CheckpointPosition;
 
             [SerializeField]
@@ -1035,6 +1066,7 @@ namespace Core
                 SceneName = string.Empty;
 
                 CheckpointActivated = false;
+                IsLoaded = false;
                 CheckpointPosition = Vector3.zero;
                 CheckpointCoin = 0;
                 CheckpointId = -1;
