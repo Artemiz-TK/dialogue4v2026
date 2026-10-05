@@ -25,19 +25,39 @@ namespace Core
                 m_Collider.isTrigger = true;
             }
 
-            m_Quantity = QuantityManager.Singleton;
+            m_Quantity =
+                QuantityManager.Singleton;
 
             if (m_Quantity != null)
             {
                 Debug.Log(
-                    "[SaveTrigger] QuantityManager encontrado."
+                    $"[SaveTrigger] QuantityManager encontrado. " +
+                    $"Checkpoint: {m_CheckpointId}"
                 );
             }
-            else
+
+            // ============================================================
+            // VERIFICA SE ESTE CHECKPOINT JÁ FOI ALCANÇADO
+            // ============================================================
+
+            if (SaveSystem.Singleton != null &&
+                m_Collider != null)
             {
-                Debug.LogWarning(
-                    "[SaveTrigger] QuantityManager não encontrado."
-                );
+                string sceneName =
+                    SceneManager.GetActiveScene().name;
+
+                if (SaveSystem.Singleton.HasReachedCheckpoint(
+                        m_CheckpointId,
+                        sceneName,
+                        m_Slot))
+                {
+                    m_Collider.enabled = false;
+
+                    Debug.Log(
+                        $"[SaveTrigger] Checkpoint {m_CheckpointId} " +
+                        "já foi alcançado. Trigger desativado."
+                    );
+                }
             }
         }
 
@@ -76,17 +96,31 @@ namespace Core
 
             if (!checkpointSaved)
             {
-                Debug.LogError(
-                    "[SaveTrigger] Não foi possível salvar o checkpoint."
+                Debug.LogWarning(
+                    $"[SaveTrigger] Checkpoint {m_CheckpointId} " +
+                    "não foi salvo."
                 );
 
                 return;
             }
 
+            // ============================================================
+            // O CHECKPOINT FOI PROCESSADO.
+            //
+            // Desabilita o collider para impedir novas ativações
+            // durante esta execução da fase.
+            // ============================================================
+
+            if (m_Collider != null)
+            {
+                m_Collider.enabled = false;
+            }
+
             Debug.Log(
-                $"[SaveTrigger] Checkpoint processado.\n" +
+                $"[SaveTrigger] Checkpoint {m_CheckpointId} ativado.\n" +
                 $"Posição: {checkpointPosition}\n" +
-                $"Moedas: {coins}"
+                $"Moedas: {coins}\n" +
+                $"Trigger desativado."
             );
         }
     }

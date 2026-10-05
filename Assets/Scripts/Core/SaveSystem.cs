@@ -379,10 +379,7 @@ namespace Core
         ///
         /// O slot 0 continua sendo a fonte do autosave.
         /// </summary>
-        public bool SaveManualSlot(
-            int slot,
-            Vector3 initialPosition,
-            string sceneName)
+        public bool SaveManualSlot(int slot, Vector3 initialPosition, string sceneName)
         {
             if (slot < FirstManualSlot ||
                 slot > LastManualSlot)
@@ -403,6 +400,8 @@ namespace Core
                 return false;
             }
 
+            Save save;
+
             // ============================================================
             // PROCURA O ÚLTIMO CHECKPOINT DA CENA ATUAL
             // ============================================================
@@ -414,54 +413,96 @@ namespace Core
                 m_Saves[AutoSaveSlot].SceneName == sceneName;
 
             // ============================================================
-            // NÃO EXISTE CHECKPOINT
-            // ============================================================
-
-            if (!hasCheckpoint)
-            {
-                Debug.LogWarning(
-                    $"[SaveSystem] Não é possível salvar o Slot {slot}. " +
-                    $"O jogador ainda não passou por um checkpoint " +
-                    $"na cena '{sceneName}'. O slot permanece inalterado."
-                );
-
-                return false;
-            }
-
-            // ============================================================
             // EXISTE CHECKPOINT
             // ============================================================
 
-            Save save =
-                Clone(
-                    m_Saves[AutoSaveSlot]
+            if (hasCheckpoint)
+            {
+                save =
+                    Clone(
+                        m_Saves[AutoSaveSlot]
+                    );
+
+                // O save manual representa exatamente
+                // o estado do checkpoint.
+                save.Position =
+                    save.CheckpointPosition;
+
+                save.Coin =
+                    save.CheckpointCoin;
+
+                Debug.Log(
+                    $"[SaveSystem] Slot {slot} utilizará o checkpoint.\n" +
+                    $"Checkpoint ID: {save.CheckpointId}\n" +
+                    $"Posição: {save.CheckpointPosition}\n" +
+                    $"Moedas: {save.CheckpointCoin}"
                 );
+            }
+            else
+            {
+                // ========================================================
+                // SEM CHECKPOINT:
+                // salva o início da fase.
+                // ========================================================
 
-            // Garante que o estado carregável corresponde
-            // exatamente ao checkpoint.
-            save.Position =
-                save.CheckpointPosition;
+                save =
+                    new Save(
+                        initialPosition,
+                        0
+                    );
 
-            save.Coin =
-                save.CheckpointCoin;
+                save.SceneName =
+                    sceneName;
 
-            save.SceneName =
-                sceneName;
+                save.CheckpointActivated =
+                    false;
+
+                save.CheckpointPosition =
+                    Vector3.zero;
+
+                save.CheckpointCoin =
+                    0;
+
+                save.CheckpointId =
+                    -1;
+
+                save.CollectedCoins =
+                    new List<string>();
+
+                save.CheckpointCollectedCoins =
+                    new List<string>();
+
+                Debug.Log(
+                    $"[SaveSystem] Slot {slot} salvo no início da fase.\n" +
+                    $"Cena: {sceneName}\n" +
+                    $"Posição inicial: {initialPosition}\n" +
+                    $"Moedas: 0"
+                );
+            }
+
+            // ============================================================
+            // GRAVA NA MEMÓRIA
+            // ============================================================
 
             EnsureSlotExists(slot);
 
             m_Saves[slot] =
                 save;
 
-            // SaveFile também replica para o Slot 0.
+            // ============================================================
+            // GRAVA O ARQUIVO
+            //
+            // SaveFile() replica automaticamente para o Slot 0.
+            // ============================================================
+
             SaveFile(slot);
 
             Debug.Log(
-                $"[SaveSystem] Slot {slot} salvo usando o checkpoint.\n" +
+                $"[SaveSystem] Slot {slot} salvo com sucesso.\n" +
                 $"Cena: {save.SceneName}\n" +
                 $"Posição: {save.Position}\n" +
                 $"Moedas: {save.Coin}\n" +
-                $"Checkpoint ID: {save.CheckpointId}"
+                $"Checkpoint: {save.CheckpointActivated}"
             );
 
             return true;
@@ -481,6 +522,40 @@ namespace Core
             }
 
             return m_Saves[slot].CheckpointActivated;
+        }
+        
+        /// <summary>
+        /// Verifica se o jogador já alcançou este checkpoint ou algum checkpoint
+        /// posterior da mesma fase.
+        /// </summary>
+        public bool HasReachedCheckpoint(
+            int checkpointId,
+            string sceneName,
+            int slot = AutoSaveSlot)
+        {
+            if (checkpointId < 0 ||
+                string.IsNullOrEmpty(sceneName))
+            {
+                return false;
+            }
+
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                return false;
+            }
+
+            Save save =
+                m_Saves[slot];
+
+            if (!save.CheckpointActivated)
+                return false;
+
+            if (save.SceneName != sceneName)
+                return false;
+
+            return save.CheckpointId >= checkpointId;
         }
 
         /// <summary>
