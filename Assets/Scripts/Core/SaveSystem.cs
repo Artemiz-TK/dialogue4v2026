@@ -524,6 +524,27 @@ namespace Core
             return m_Saves[slot].CheckpointActivated;
         }
         
+        public bool HasValidCheckpointForCurrentScene(int slot = 0)
+        {
+            if (slot < 0 ||
+                slot >= m_Saves.Count ||
+                m_Saves[slot] == null)
+            {
+                return false;
+            }
+
+            Save save =
+                m_Saves[slot];
+
+            if (!save.CheckpointActivated)
+                return false;
+
+            string currentScene =
+                SceneManager.GetActiveScene().name;
+
+            return save.SceneName == currentScene;
+        }
+        
         /// <summary>
         /// Verifica se o jogador já alcançou este checkpoint ou algum checkpoint
         /// posterior da mesma fase.
@@ -689,17 +710,32 @@ namespace Core
             if (string.IsNullOrEmpty(coinId))
                 return;
 
-            Save save = GetOrCreateSave(slot);
+            Save save =
+                GetOrCreateSave(slot);
 
             if (save == null)
                 return;
 
-            save.CollectedCoins ??= new List<string>();
+            save.CollectedCoins ??=
+                new List<string>();
 
-            if (!save.CollectedCoins.Contains(coinId))
-            {
-                save.CollectedCoins.Add(coinId);
-            }
+            // Evita registrar a mesma moeda duas vezes.
+            if (save.CollectedCoins.Contains(coinId))
+                return;
+
+            save.CollectedCoins.Add(
+                coinId
+            );
+
+            // ============================================================
+            // SALVA IMEDIATAMENTE NO ARQUIVO
+            // ============================================================
+
+            SaveFile(slot);
+
+            Debug.Log(
+                $"[SaveSystem] Moeda coletada salva: {coinId}"
+            );
         }
 
         public bool IsCoinCollected(

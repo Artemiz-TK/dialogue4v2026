@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8876699081162561646}
   - component: {fileID: 32971885263378377}
   - component: {fileID: 4399180697936007214}
+  - component: {fileID: 4326319008872701280}
   m_Layer: 0
   m_Name: Coin
   m_TagString: Coin
@@ -125,5 +126,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a5f78d051bc46d4fb19381786bfa316, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CoinController
-  m_Quantity:
-    <quantity>k__BackingField: 0
+--- !u!114 &4326319008872701280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2010262528721758386}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d50b17a3bbfd4925a3d3e82ec9963588, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Core.PersistentCoin
