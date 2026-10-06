@@ -31,40 +31,28 @@
             SaveSystem saveSystem =
                 SaveSystem.Singleton;
 
-            // ============================================================
-            // VERIFICA SE EXISTE CHECKPOINT VÁLIDO NESTE MOMENTO
-            // ============================================================
-
-            bool hasValidCheckpoint =
-                saveSystem != null &&
-                saveSystem.HasValidCheckpointForCurrentScene(
-                    m_SaveSlot
-                );
-
-            // ============================================================
-            // SÓ TORNA A MOEDA PERSISTENTE SE HAVIA CHECKPOINT VÁLIDO
-            // ============================================================
-
-            if (hasValidCheckpoint)
+            if (saveSystem != null)
             {
+                // --------------------------------------------------------
+                // REGISTRA A MOEDA NA EXECUÇÃO ATUAL.
+                //
+                // Isso NÃO significa que ela já foi salva no disco.
+                // Ela só se torna persistente quando um checkpoint
+                // copiar esse estado para CheckpointCollectedCoins.
+                // --------------------------------------------------------
+
                 saveSystem.RegisterCollectedCoin(
                     m_CoinId,
                     m_SaveSlot
                 );
 
                 Debug.Log(
-                    $"[PersistentCoin] Moeda persistida: {m_CoinId}"
-                );
-            }
-            else
-            {
-                Debug.Log(
-                    $"[PersistentCoin] Moeda coletada sem checkpoint válido: " +
-                    $"{m_CoinId}. Ela reaparecerá ao recarregar a fase."
+                    $"[PersistentCoin] Moeda coletada na execução atual: " +
+                    $"{m_CoinId}"
                 );
             }
 
-            // A moeda desaparece normalmente durante a execução.
+            // Desaparece normalmente nesta execução.
             gameObject.SetActive(false);
         }
     }

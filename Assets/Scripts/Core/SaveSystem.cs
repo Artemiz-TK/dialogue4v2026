@@ -287,8 +287,7 @@ namespace Core
                 save.SceneName == sceneName)
             {
                 // --------------------------------------------------------
-                // Se estamos tentando voltar para um checkpoint anterior,
-                // não permitimos regressão.
+                // Não permite regressão para um checkpoint anterior.
                 // --------------------------------------------------------
 
                 if (checkpointId < save.CheckpointId)
@@ -300,17 +299,10 @@ namespace Core
 
                     return true;
                 }
-
-                // --------------------------------------------------------
-                // checkpointId == atual
-                //
-                // O jogador está ativando novamente o mesmo checkpoint.
-                // Nesse caso, atualizamos o snapshot.
-                // --------------------------------------------------------
             }
 
             // ============================================================
-            // NOVO CHECKPOINT
+            // DADOS BÁSICOS DO CHECKPOINT
             // ============================================================
 
             save.SceneName =
@@ -339,6 +331,30 @@ namespace Core
                 coins;
 
             // ============================================================
+            // SNAPSHOT DAS MOEDAS
+            // ============================================================
+
+            if (save.CollectedCoins == null)
+            {
+                save.CollectedCoins =
+                    new List<string>();
+            }
+
+            // Tudo que foi coletado até este checkpoint
+            // passa a ser persistente.
+            save.CheckpointCollectedCoins =
+                new List<string>(
+                    save.CollectedCoins
+                );
+
+            // Depois do checkpoint, o estado atual começa
+            // exatamente a partir desse snapshot.
+            save.CollectedCoins =
+                new List<string>(
+                    save.CheckpointCollectedCoins
+                );
+
+            // ============================================================
             // SALVA
             // ============================================================
 
@@ -348,12 +364,14 @@ namespace Core
                 $"[SaveSystem] CHECKPOINT {checkpointId} salvo.\n" +
                 $"Cena: {sceneName}\n" +
                 $"Posição: {checkpointPosition}\n" +
-                $"Moedas: {coins}"
+                $"Moedas: {coins}\n" +
+                $"Moedas persistidas: " +
+                $"{save.CheckpointCollectedCoins.Count}"
             );
 
             return true;
         }
-        
+
         public bool SaveCheckpoint(
             Vector3 checkpointPosition,
             int coins,
@@ -430,6 +448,11 @@ namespace Core
 
                 save.Coin =
                     save.CheckpointCoin;
+
+                save.CollectedCoins =
+                    new List<string>(
+                        save.CheckpointCollectedCoins
+                    );
 
                 Debug.Log(
                     $"[SaveSystem] Slot {slot} utilizará o checkpoint.\n" +
@@ -1016,6 +1039,19 @@ namespace Core
                 m_Saves[slot].CollectedCoins ??= new List<string>();
 
                 m_Saves[slot].CheckpointCollectedCoins ??= new List<string>();
+
+                if (m_Saves[slot].CheckpointActivated)
+                {
+                    m_Saves[slot].CollectedCoins =
+                        new List<string>(
+                            m_Saves[slot].CheckpointCollectedCoins
+                        );
+                }
+                else
+                {
+                    m_Saves[slot].CollectedCoins =
+                        new List<string>();
+                }
 
                 Debug.Log(
                     $"Save carregado do arquivo para o slot {slot}: " +

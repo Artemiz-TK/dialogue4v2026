@@ -104,12 +104,12 @@
                 // ============================================================
 
                 if (saveSystem != null &&
-                    saveSystem.IsCoinCollected(
+                    saveSystem.IsCoinCollectedAtCheckpoint(
                         coinId,
                         m_SaveSlot))
                 {
                     Debug.Log(
-                        $"[CoinSpawner] Moeda já coletada: {coinId}"
+                        $"[CoinSpawner] Moeda já persistida no checkpoint: {coinId}"
                     );
 
                     continue;

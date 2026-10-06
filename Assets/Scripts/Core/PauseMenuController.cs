@@ -48,7 +48,7 @@ namespace Core
 
         public void SaveSlot(int slot)
         {
-            if (slot < 1 || slot > 3)
+            if (slot is < 1 or > 3)
             {
                 Debug.LogWarning(
                     $"[PauseMenuController] Slot inválido: {slot}"
@@ -66,61 +66,34 @@ namespace Core
                 return;
             }
 
-            GameObject player =
-                GameObject.FindGameObjectWithTag("Player");
-
-            if (player == null)
+            if (GameManager.Singleton == null)
             {
-                Debug.LogWarning(
-                    "[PauseMenuController] Player não encontrado."
+                Debug.LogError(
+                    "[PauseMenuController] GameManager não encontrado."
                 );
 
                 return;
             }
 
-            // --------------------------------------------------------
-            // Posição
-            // --------------------------------------------------------
-
-            SaveSystem.Singleton.SavePosition(
-                player.transform.position,
-                slot
-            );
-
-            // --------------------------------------------------------
-            // Moedas
-            // --------------------------------------------------------
-
-            int coins = 0;
-
-            if (QuantityManager.Singleton != null)
-            {
-                coins =
-                    QuantityManager.Singleton.Quantity;
-            }
-
-            SaveSystem.Singleton.SavePlayerCoins(
-                coins,
-                slot
-            );
-
-            // --------------------------------------------------------
-            // Cena
-            // --------------------------------------------------------
-
             string sceneName =
                 SceneManager.GetActiveScene().name;
 
-            SaveSystem.Singleton.SaveSceneName(
-                sceneName,
-                slot
-            );
+            bool saved =
+                SaveSystem.Singleton.SaveManualSlot(
+                    slot,
+                    GameManager.Singleton.CurrentPhaseStartPosition,
+                    sceneName
+                );
 
-            // --------------------------------------------------------
-            // Grava arquivo
-            // --------------------------------------------------------
+            if (!saved)
+            {
+                Debug.LogWarning(
+                    $"[PauseMenuController] " +
+                    $"Não foi possível salvar o Slot {slot}."
+                );
 
-            SaveSystem.Singleton.SaveFile(slot);
+                return;
+            }
 
             Debug.Log(
                 $"[PauseMenuController] " +
